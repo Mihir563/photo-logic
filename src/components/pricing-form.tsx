@@ -1,69 +1,337 @@
-"use client"
+"use client";
 
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { DollarSign, Plus, Trash } from "lucide-react"
-import { useState } from "react"
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { DollarSign, IndianRupee, Plus, Trash } from "lucide-react";
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase";
+import { toast } from "sonner";
 
 export default function PricingForm() {
-  const [packages, setPackages] = useState([
-    {
-      id: "1",
-      name: "Basic Session",
-      price: 150,
-      duration: 1,
-      description: "1 hour photo session, 10 edited digital photos, Online gallery, Personal use license",
-      included: ["1 hour photo session", "10 edited digital photos", "Online gallery", "Personal use license"],
-    },
-    {
-      id: "2",
-      name: "Standard Session",
-      price: 300,
-      duration: 2,
-      description:
-        "2 hour photo session, 25 edited digital photos, Online gallery, Personal use license, 1 outfit change",
-      included: [
-        "2 hour photo session",
-        "25 edited digital photos",
-        "Online gallery",
-        "Personal use license",
-        "1 outfit change",
-      ],
-    },
-    {
-      id: "3",
-      name: "Premium Session",
-      price: 600,
-      duration: 4,
-      description:
-        "4 hour photo session, 50 edited digital photos, Online gallery, Commercial use license, Multiple locations, 3 outfit changes",
-      included: [
-        "4 hour photo session",
-        "50 edited digital photos",
-        "Online gallery",
-        "Commercial use license",
-        "Multiple locations",
-        "3 outfit changes",
-      ],
-    },
-  ])
+  const [packages, setPackages] = useState([]);
+  const [hourlyRate, setHourlyRate] = useState("150");
+  const [loading, setLoading] = useState(true);
+
+  // Fetch user profile and pricing packages
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+
+        // Get current user
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
+        if (!user) {
+          toast(
+           "Authentication error",{
+            description: "Please sign in to manage your pricing packages",
+          });
+          return;
+        }
+
+        // Get user profile to fetch hourly rate
+        const { data: profileData } = await supabase
+          .from("profiles")
+          .select("hourly_rate")
+          .eq("id", user.id)
+          .single();
+
+        if (profileData?.hourly_rate) {
+          setHourlyRate(profileData.hourly_rate.toString());
+        }
+
+        // Get pricing packages
+        const { data: packagesData, error } = await supabase
+          .from("pricing_packages")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: true });
+
+        if (error) {
+          throw error;
+        }
+
+        if (packagesData && packagesData.length > 0) {
+          // Transform the data to match our component structure
+          const formattedPackages = packagesData.map((pkg) => ({
+            id: pkg.id,
+            name: pkg.name,
+            price: pkg.price,
+            duration: pkg.duration || 1,
+            description: pkg.description || "",
+            included: pkg.included || [""],
+          }));
+
+          setPackages(formattedPackages);
+        } else {
+          // If no packages exist, create default ones
+          setPackages([
+            {
+              id: "temp-1",
+              name: "Basic Session",
+              price: 150,
+              duration: 1,
+              description:
+                "1 hour photo session, 10 edited digital photos, Online gallery, Personal use license",
+              included: [
+                "1 hour photo session",
+                "10 edited digital photos",
+                "Online gallery",
+                "Personal use license",
+              ],
+              isNew: true,
+            },
+          ]);
+        }
+      } catch (error) {
+        console.error("Error fetching data:", error);
+        toast({
+          title: "Error fetching data",
+          description: error.message || "Failed to load your pricing packages",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [supabase, toast]);
+
+  // Save hourly rate to profiles table
+  const saveHourlyRate = async () => {
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) return;
+
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          hourly_rate: parseFloat(hourlyRate),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", user.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Hourly rate updated",
+        description: "Your hourly rate has been saved successfully",
+      });
+    } catch (error) {
+      console.error("Error saving hourly rate:", error);
+      toast({
+        title: "Error saving hourly rate",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
 
   const addPackage = () => {
     const newPackage = {
-      id: Date.now().toString(),
+      id: `temp-${Date.now()}`,
       name: "New Package",
       price: 0,
       duration: 1,
       description: "",
       included: [""],
-    }
-    setPackages([...packages, newPackage])
-  }
+      isNew: true,
+    };
+    setPackages([...packages, newPackage]);
+  };
 
-  const removePackage = (id: string) => {
-    setPackages(packages.filter((pkg) => pkg.id !== id))
+  const removePackage = async (id) => {
+    try {
+      // If it's a temporary ID (hasn't been saved to Supabase yet)
+      if (id.startsWith("temp-")) {
+        setPackages(packages.filter((pkg) => pkg.id !== id));
+        return;
+      }
+
+      // Otherwise, delete from Supabase
+      const { error } = await supabase
+        .from("pricing_packages")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+
+      setPackages(packages.filter((pkg) => pkg.id !== id));
+
+      toast({
+        title: "Package removed",
+        description: "Your package has been deleted successfully",
+      });
+    } catch (error) {
+      console.error("Error removing package:", error);
+      toast({
+        title: "Error removing package",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handlePackageChange = (id, field, value) => {
+    setPackages(
+      packages.map((pkg) => {
+        if (pkg.id === id) {
+          return { ...pkg, [field]: value, hasChanges: true };
+        }
+        return pkg;
+      })
+    );
+  };
+
+  const handleIncludedItemChange = (packageId, itemIndex, value) => {
+    setPackages(
+      packages.map((pkg) => {
+        if (pkg.id === packageId) {
+          const newIncluded = [...pkg.included];
+          newIncluded[itemIndex] = value;
+          return { ...pkg, included: newIncluded, hasChanges: true };
+        }
+        return pkg;
+      })
+    );
+  };
+
+  const addIncludedItem = (packageId) => {
+    setPackages(
+      packages.map((pkg) => {
+        if (pkg.id === packageId) {
+          return {
+            ...pkg,
+            included: [...pkg.included, ""],
+            hasChanges: true,
+          };
+        }
+        return pkg;
+      })
+    );
+  };
+
+  const removeIncludedItem = (packageId, itemIndex) => {
+    setPackages(
+      packages.map((pkg) => {
+        if (pkg.id === packageId) {
+          const newIncluded = [...pkg.included];
+          newIncluded.splice(itemIndex, 1);
+          return {
+            ...pkg,
+            included: newIncluded,
+            hasChanges: true,
+          };
+        }
+        return pkg;
+      })
+    );
+  };
+
+  const savePackages = async () => {
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        toast({
+          title: "Authentication error",
+          description: "Please sign in to save your pricing packages",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Save hourly rate
+      await saveHourlyRate();
+
+      // Process each package
+      for (const pkg of packages) {
+        // Format the package data for Supabase
+        const packageData = {
+          user_id: user.id,
+          name: pkg.name,
+          price: parseFloat(pkg.price),
+          duration: parseInt(pkg.duration),
+          description: pkg.description,
+          included: pkg.included.filter((item) => item.trim() !== ""),
+          updated_at: new Date().toISOString(),
+        };
+
+        if (pkg.isNew || pkg.id.startsWith("temp-")) {
+          // Insert new package
+          const { data, error } = await supabase
+            .from("pricing_packages")
+            .insert(packageData)
+            .select();
+
+          if (error) throw error;
+        } else if (pkg.hasChanges) {
+          // Update existing package
+          const { error } = await supabase
+            .from("pricing_packages")
+            .update(packageData)
+            .eq("id", pkg.id);
+
+          if (error) throw error;
+        }
+      }
+
+      // Refresh data after saving
+      const { data: refreshedPackages, error } = await supabase
+        .from("pricing_packages")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: true });
+
+      if (error) throw error;
+
+      const formattedPackages = refreshedPackages.map((pkg) => ({
+        id: pkg.id,
+        name: pkg.name,
+        price: pkg.price,
+        duration: pkg.duration || 1,
+        description: pkg.description || "",
+        included: pkg.included || [""],
+      }));
+
+      setPackages(formattedPackages);
+
+      toast({
+        title: "Packages saved",
+        description: "Your pricing packages have been saved successfully",
+      });
+    } catch (error) {
+      console.error("Error saving packages:", error);
+      toast({
+        title: "Error saving packages",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-[400px]">
+        <p>Loading your pricing information...</p>
+      </div>
+    );
   }
 
   return (
@@ -71,13 +339,21 @@ export default function PricingForm() {
       <Card className="mb-8">
         <CardHeader>
           <CardTitle>Hourly Rate</CardTitle>
-          <CardDescription>Set your base hourly rate for photography services</CardDescription>
+          <CardDescription>
+            Set your base hourly rate for photography services
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex items-center gap-2 max-w-md">
             <div className="relative">
-              <DollarSign className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input className="pl-10" defaultValue="150" />
+              <IndianRupee className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input
+                className="pl-10"
+                value={hourlyRate}
+                onChange={(e) => setHourlyRate(e.target.value)}
+                type="number"
+                min="0"
+              />
             </div>
             <span className="text-muted-foreground">per hour</span>
           </div>
@@ -88,7 +364,9 @@ export default function PricingForm() {
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
             <CardTitle>Packages</CardTitle>
-            <CardDescription>Create custom packages for your photography services</CardDescription>
+            <CardDescription>
+              Create custom packages for your photography services
+            </CardDescription>
           </div>
           <Button onClick={addPackage}>
             <Plus className="mr-2 h-4 w-4" />
@@ -108,57 +386,117 @@ export default function PricingForm() {
                   <Trash className="h-4 w-4" />
                 </Button>
 
-                <h3 className="text-lg font-medium mb-4">Package {index + 1}</h3>
+                <h3 className="text-lg font-medium mb-4">
+                  Package {index + 1}
+                </h3>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-4">
                     <div className="space-y-2">
-                      <label htmlFor={`name-${pkg.id}`} className="text-sm font-medium">
+                      <label
+                        htmlFor={`name-${pkg.id}`}
+                        className="text-sm font-medium"
+                      >
                         Package Name
                       </label>
-                      <Input id={`name-${pkg.id}`} defaultValue={pkg.name} />
+                      <Input
+                        id={`name-${pkg.id}`}
+                        value={pkg.name}
+                        onChange={(e) =>
+                          handlePackageChange(pkg.id, "name", e.target.value)
+                        }
+                      />
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <label htmlFor={`price-${pkg.id}`} className="text-sm font-medium">
-                          Price ($)
+                        <label
+                          htmlFor={`price-${pkg.id}`}
+                          className="text-sm font-medium items-center flex"
+                        >
+                          Price  <IndianRupee size={14}/>
                         </label>
-                        <Input id={`price-${pkg.id}`} defaultValue={pkg.price.toString()} />
+                        <Input
+                          id={`price-${pkg.id}`}
+                          value={pkg.price}
+                          onChange={(e) =>
+                            handlePackageChange(pkg.id, "price", e.target.value)
+                          }
+                          type="number"
+                          min="0"
+                        />
                       </div>
 
                       <div className="space-y-2">
-                        <label htmlFor={`duration-${pkg.id}`} className="text-sm font-medium">
+                        <label
+                          htmlFor={`duration-${pkg.id}`}
+                          className="text-sm font-medium"
+                        >
                           Duration (hours)
                         </label>
-                        <Input id={`duration-${pkg.id}`} defaultValue={pkg.duration.toString()} />
+                        <Input
+                          id={`duration-${pkg.id}`}
+                          value={pkg.duration}
+                          onChange={(e) =>
+                            handlePackageChange(
+                              pkg.id,
+                              "duration",
+                              e.target.value
+                            )
+                          }
+                          type="number"
+                          min="0.5"
+                          step="0.5"
+                        />
                       </div>
                     </div>
 
                     <div className="space-y-2">
-                      <label htmlFor={`description-${pkg.id}`} className="text-sm font-medium">
+                      <label
+                        htmlFor={`description-${pkg.id}`}
+                        className="text-sm font-medium"
+                      >
                         Description
                       </label>
-                      <Textarea id={`description-${pkg.id}`} defaultValue={pkg.description} rows={3} />
+                      <Textarea
+                        id={`description-${pkg.id}`}
+                        value={pkg.description}
+                        onChange={(e) =>
+                          handlePackageChange(
+                            pkg.id,
+                            "description",
+                            e.target.value
+                          )
+                        }
+                        rows={3}
+                      />
                     </div>
                   </div>
 
                   <div className="space-y-4">
                     <div>
-                      <label className="text-sm font-medium">What's Included</label>
+                      <label className="text-sm font-medium">
+                        What's Included
+                      </label>
                       <div className="mt-2 space-y-2">
                         {pkg.included.map((item, itemIndex) => (
                           <div key={itemIndex} className="flex gap-2">
-                            <Input defaultValue={item} placeholder="e.g., 1 hour photo session" />
+                            <Input
+                              value={item}
+                              onChange={(e) =>
+                                handleIncludedItemChange(
+                                  pkg.id,
+                                  itemIndex,
+                                  e.target.value
+                                )
+                              }
+                              placeholder="e.g., 1 hour photo session"
+                            />
                             {itemIndex === pkg.included.length - 1 ? (
                               <Button
                                 variant="outline"
                                 size="icon"
-                                onClick={() => {
-                                  const newPackages = [...packages]
-                                  newPackages[index].included.push("")
-                                  setPackages(newPackages)
-                                }}
+                                onClick={() => addIncludedItem(pkg.id)}
                               >
                                 <Plus className="h-4 w-4" />
                               </Button>
@@ -166,11 +504,9 @@ export default function PricingForm() {
                               <Button
                                 variant="outline"
                                 size="icon"
-                                onClick={() => {
-                                  const newPackages = [...packages]
-                                  newPackages[index].included.splice(itemIndex, 1)
-                                  setPackages(newPackages)
-                                }}
+                                onClick={() =>
+                                  removeIncludedItem(pkg.id, itemIndex)
+                                }
                               >
                                 <Trash className="h-4 w-4" />
                               </Button>
@@ -186,11 +522,10 @@ export default function PricingForm() {
           </div>
 
           <div className="mt-6">
-            <Button>Save Pricing</Button>
+            <Button onClick={savePackages}>Save Pricing</Button>
           </div>
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }
-

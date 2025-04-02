@@ -30,7 +30,10 @@ export default function Navbar() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [user, setUser] = useState<{ email: string } | null>(null);
+  const [user, setUser] = useState<{
+    email: string;
+    avatar_url: string;
+  } | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -233,7 +236,11 @@ export default function Navbar() {
 
         <div className="flex items-center gap-4">
           <div className="hidden md:flex">
-            <Button onClick={() => router.push('/search')} variant="ghost" size="icon">
+            <Button
+              onClick={() => router.push("/search")}
+              variant="ghost"
+              size="icon"
+            >
               <Search className="h-5 w-5" />
             </Button>
           </div>
@@ -246,10 +253,7 @@ export default function Navbar() {
                   className="relative h-8 w-8 rounded-full"
                 >
                   <Avatar className="h-8 w-8">
-                    <AvatarImage
-                      src="/placeholder.svg?height=32&width=32"
-                      alt="User"
-                    />
+                    <AvatarImage src={user?.avatar_url} alt="User" />
                     <AvatarFallback>U</AvatarFallback>
                   </Avatar>
                 </Button>

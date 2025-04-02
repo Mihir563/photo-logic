@@ -21,9 +21,33 @@ import PortfolioGallery from "@/components/portfolio-gallery";
 import InquiryForm from "@/components/inquiry-form";
 import { supabase } from "@/lib/supabase";
 
+interface Photographer {
+  id: string;
+  name: string;
+  cover_image?: string;
+  avatar_url?: string;
+  location?: string;
+  rating?: number;
+  bio?: string;
+  instagram?: string;
+  facebook?: string;
+  twitter?: string;
+  base_price?: number;
+  specialties: string[];
+  portfolio: Array<{
+    title: string;
+    id: string;
+    imageUrl: string;
+    category: string;
+    description: string;
+    createdAt: string;
+  }>;
+  availability: string[];
+}
+
 export default function PhotographerProfile() {
   const params = useParams();
-  const [photographer, setPhotographer] = useState(null);
+  const [photographer, setPhotographer] = useState<Photographer | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -46,14 +70,13 @@ export default function PhotographerProfile() {
           .eq("account_type", "photographer")
           .single();
 
-          
         if (error) {
           console.error("Error fetching photographer:", error);
           setError(error.message);
           return;
         }
 
-        console.log
+        console.log;
         if (!data) {
           notFound();
           return;
@@ -62,17 +85,17 @@ export default function PhotographerProfile() {
         // Transform data if needed
         const transformedData = {
           ...data,
-          specialties: data.specialties.map((s : any) => s.specialty || s.name),
+          specialties: data.specialties.map((s: any) => s.specialty || s.name),
           portfolio: data.portfolio.map((p: any) => ({
             title: p.title,
             id: p.id,
             imageUrl: p.image,
             category: p.category,
-            description:p.description,
-            createdAt: p.created_at
+            description: p.description,
+            createdAt: p.created_at,
           })),
-          
-          availability: data.availability.map((a:any) => a.date),
+
+          availability: data.availability.map((a: any) => a.date),
         };
 
         setPhotographer(transformedData);
@@ -83,7 +106,6 @@ export default function PhotographerProfile() {
         setLoading(false);
       }
     };
-
 
     if (params.id) {
       fetchPhotographer();
@@ -135,7 +157,7 @@ export default function PhotographerProfile() {
           <div className="flex-shrink-0">
             <Avatar className="h-24 w-24 border-4 border-background">
               <AvatarImage
-                src={photographer?.avatar}
+                src={photographer?.avatar_url}
                 alt={photographer?.name}
               />
               <AvatarFallback>{photographer?.name?.charAt(0)}</AvatarFallback>
@@ -245,6 +267,7 @@ export default function PhotographerProfile() {
         </TabsList>
 
         <TabsContent value="portfolio" className="mt-6">
+          {/* @ts-ignore */}
           <PortfolioGallery portfolio={photographer?.portfolio} />
         </TabsContent>
 
@@ -281,6 +304,7 @@ export default function PhotographerProfile() {
               <CardContent className="pt-6">
                 <h3 className="text-xl font-bold mb-2">Standard Session</h3>
                 <div className="text-3xl font-bold mb-4">
+                {/* @ts-ignore */}
                   ${photographer?.base_price * 2}{" "}
                   <span className="text-sm font-normal text-muted-foreground">
                     / package
@@ -310,7 +334,7 @@ export default function PhotographerProfile() {
             <Card>
               <CardContent className="pt-6">
                 <h3 className="text-xl font-bold mb-2">Premium Session</h3>
-                <div className="text-3xl font-bold mb-4">
+                <div className="text-3xl font-bold mb-4">{/* @ts-ignore */}
                   ${photographer?.base_price * 4}{" "}
                   <span className="text-sm font-normal text-muted-foreground">
                     / package

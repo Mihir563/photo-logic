@@ -120,3 +120,27 @@
     @apply bg-background text-foreground;
   }
 }
+/* Custom Scrollbar for WebKit Browsers */
+::-webkit-scrollbar {
+  width: 10px;
+  /* Width of the scrollbar */
+}
+
+::-webkit-scrollbar-track {
+  background: #ffffff;
+  /* Background color of the scrollbar track */
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #b8b8b8;
+  /* Scrollbar color */
+  border-radius: 10px;
+  /* Rounded corners */
+  transition: background 0.3s ease-in-out;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #000000;
+  /* Change color on hover */
+}
