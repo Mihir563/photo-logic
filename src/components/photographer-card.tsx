@@ -21,11 +21,12 @@ export default function PhotographerCard({
     location,
     rating,
     specialties,
-    hourly_rate,
+    price,
     coverImage,
     bio,
   } = photographer;
 
+  console.log(photographer)
   return (
     <Card className="overflow-hidden transition-all hover:shadow-md">
       <div className="relative h-48 overflow-hidden">
@@ -88,7 +89,7 @@ export default function PhotographerCard({
 
         <div className="flex items-center justify-between">
           <div>
-            <span className="text-lg font-bold">₹{hourly_rate || 0}</span>
+            <span className="text-lg font-bold">₹{price || 0}</span>
             <span className="text-muted-foreground text-sm"> / hour</span>
           </div>
         </div>
