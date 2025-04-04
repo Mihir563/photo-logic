@@ -25,7 +25,7 @@ import BookingManager from "@/components/booking-manager";
 import ChatInterface from "@/components/chat-interface";
 import PortfolioManager from "@/components/portfolio-manager";
 import AvailabilityManager from "@/components/availability-manager";
-import { toast } from "sonner";
+import { toast, Toaster } from "sonner";
 import { useRouter } from "next/navigation";
 
 export default function Dashboard() {
@@ -53,7 +53,7 @@ export default function Dashboard() {
         } = await supabase.auth.getUser();
 
         if (authError || !user) {
-          router.push("/login"); // Redirect to login if not authenticated
+          router.push("/auth"); // Redirect to login if not authenticated
           return;
         }
 
@@ -130,7 +130,7 @@ export default function Dashboard() {
         }
       } catch (error) {
         console.error("Error fetching user data:", error);
-        toast(
+        toast.error(
           "Error",{
           description: "Failed to load your profile. Please try again.",
         });
@@ -238,13 +238,25 @@ export default function Dashboard() {
       </div>
 
       <Tabs defaultValue="bookings" className="mt-8">
-        <TabsList className="grid w-full grid-cols-6 mb-8">
-          <TabsTrigger value="bookings">Bookings</TabsTrigger>
-          <TabsTrigger value="messages">Messages</TabsTrigger>
-          <TabsTrigger value="portfolio">Portfolio</TabsTrigger>
-          <TabsTrigger value="profile">Profile</TabsTrigger>
-          <TabsTrigger value="pricing">Pricing</TabsTrigger>
-          <TabsTrigger value="availability">Availability</TabsTrigger>
+        <TabsList className="flex flex-wrap justify-center gap-2 md:justify-start">
+          <TabsTrigger value="bookings" className="flex-1 min-w-[120px]">
+            Bookings
+          </TabsTrigger>
+          <TabsTrigger value="messages" className="flex-1 min-w-[120px]">
+            Messages
+          </TabsTrigger>
+          <TabsTrigger value="portfolio" className="flex-1 min-w-[120px]">
+            Portfolio
+          </TabsTrigger>
+          <TabsTrigger value="profile" className="flex-1 min-w-[120px]">
+            Profile
+          </TabsTrigger>
+          <TabsTrigger value="pricing" className="flex-1 min-w-[120px]">
+            Pricing
+          </TabsTrigger>
+          <TabsTrigger value="availability" className="flex-1 min-w-[120px]">
+            Availability
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="bookings">
@@ -399,17 +411,15 @@ function ClientDashboard() {
               <CardTitle>Messages</CardTitle>
               <CardDescription>Communicate with photographers</CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="text-center py-16">
-                <MessageSquare className="h-16 w-16 mx-auto text-muted-foreground" />
-                <h3 className="text-xl font-medium mt-4">No messages yet</h3>
-                <p className="text-muted-foreground mt-2">
-                  Your conversations with photographers will appear here
-                </p>
-              </div>
+              <CardContent>
+                <Suspense fallback={<div>Loading messages...</div>}>
+                  <ChatInterface />
+                </Suspense>
             </CardContent>
           </Card>
         </TabsContent>
+
+        <Toaster/>
 
         <TabsContent value="profile">
           <Card>

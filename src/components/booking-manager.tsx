@@ -17,7 +17,7 @@ import {
 import { Textarea } from "@/components/ui/textarea"
 import { CalendarIcon, Clock, MapPin, Check, X } from "lucide-react"
 import { supabase } from "@/lib/supabase"
-import { toast } from "sonner"
+import { toast, Toaster } from "sonner"
 import { format } from "date-fns"
 
 interface Booking {
@@ -79,7 +79,7 @@ export default function BookingManager() {
 
         if (data) {
           // Format the data
-          const formattedBookings = data.map((booking) => ({
+          const formattedBookings = data.map((booking:any) => ({
             id: booking.id,
             client: {
               id: booking.clients.id,
@@ -106,10 +106,9 @@ export default function BookingManager() {
           setCalendarDates(dates)
         }
       } catch (error: any) {
-        toast({
-          title: "Error loading bookings",
+        toast.error(
+          "Error loading bookings",{
           description: error.message,
-          variant: "destructive",
         })
       } finally {
         setLoading(false)
@@ -151,8 +150,8 @@ export default function BookingManager() {
       setSelectedBooking(null)
       setResponseNote("")
 
-      toast({
-        title: `Booking ${status}`,
+      toast.success(
+        `Booking ${status}`,{
         description: `The booking has been ${status} successfully.`,
       })
 
@@ -168,10 +167,9 @@ export default function BookingManager() {
         },
       ])
     } catch (error: any) {
-      toast({
-        title: "Error updating booking",
+      toast.error(
+        "Error updating booking",{
         description: error.message,
-        variant: "destructive",
       })
     } finally {
       setLoading(false)
@@ -372,6 +370,8 @@ export default function BookingManager() {
                 </div>
               )}
             </div>
+
+            <Toaster/>
 
             <DialogFooter className="flex flex-col sm:flex-row sm:justify-between sm:space-x-2">
               {selectedBooking.status === "pending" ? (

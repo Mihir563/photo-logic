@@ -8,7 +8,7 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardHeader,
+  CardHeader, 
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -16,7 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Camera, Upload } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import { toast } from "sonner";
+import { toast, Toaster } from "sonner";
 
 export default function ProfileForm({ isClient = true }) {
   const [loading, setLoading] = useState(false);
@@ -35,7 +35,7 @@ export default function ProfileForm({ isClient = true }) {
   });
 
   // Determine which table to use based on user type
-  const tableToUse =  "profiles" 
+  const tableToUse = "profiles";
 
   // Fetch profile data on component mount
   useEffect(() => {
@@ -50,9 +50,6 @@ export default function ProfileForm({ isClient = true }) {
 
         if (!user) throw new Error("User not found");
 
-        console.log("User ID:", user.id);
-        console.log(`Fetching from ${tableToUse} table`);
-
         // Get profile data from the appropriate table
         const { data, error } = await supabase
           .from(tableToUse)
@@ -65,7 +62,6 @@ export default function ProfileForm({ isClient = true }) {
         }
 
         if (data) {
-          console.log("Profile data loaded:", data);
           setProfile({
             name: data.name || "",
             email: data.email || "",
@@ -82,7 +78,7 @@ export default function ProfileForm({ isClient = true }) {
         }
       } catch (error: any) {
         console.error("Error loading profile:", error);
-        toast("Error loading profile", {
+        toast.error("Error loading profile", {
           description: error.message,
         });
       } finally {
@@ -130,17 +126,16 @@ export default function ProfileForm({ isClient = true }) {
         });
       }
 
-      console.log(`Saving data to ${tableToUse} table:`, updates);
       const { error } = await supabase.from(tableToUse).upsert(updates);
 
       if (error) throw error;
 
-      toast("Profile updated", {
+      toast.success("Profile updated", {
         description: "Your profile has been updated successfully.",
       });
     } catch (error: any) {
       console.error("Error updating profile:", error);
-      toast("Error updating profile", {
+      toast.error("Error updating profile", {
         description: error.message,
       });
     } finally {
@@ -165,7 +160,6 @@ export default function ProfileForm({ isClient = true }) {
       const fileExt = file.name.split(".").pop();
       const filePath = `avatars/${user.id}-${Math.random()}.${fileExt}`;
 
-      console.log("Uploading avatar to storage:", filePath);
       const { error: uploadError } = await supabase.storage
         .from("portfolio")
         .upload(filePath, file);
@@ -176,7 +170,6 @@ export default function ProfileForm({ isClient = true }) {
         data: { publicUrl },
       } = supabase.storage.from("portfolio").getPublicUrl(filePath);
 
-      console.log(`Updating ${tableToUse} with new avatar URL:`, publicUrl);
       const { error: updateError } = await supabase
         .from(tableToUse)
         .update({ avatar_url: publicUrl })
@@ -186,12 +179,12 @@ export default function ProfileForm({ isClient = true }) {
 
       setProfile((prev) => ({ ...prev, avatar_url: publicUrl }));
 
-      toast("Avatar updated", {
+      toast.success("Avatar updated", {
         description: "Your profile photo has been updated successfully.",
       });
     } catch (error: any) {
       console.error("Error uploading avatar:", error);
-      toast("Error uploading avatar", {
+      toast.success("Error uploading avatar", {
         description: error.message,
       });
     } finally {
@@ -216,7 +209,6 @@ export default function ProfileForm({ isClient = true }) {
       const fileExt = file.name.split(".").pop();
       const filePath = `covers/${user.id}-${Math.random()}.${fileExt}`;
 
-      console.log("Uploading cover image to storage:", filePath);
       const { error: uploadError } = await supabase.storage
         .from("portfolio")
         .upload(filePath, file);
@@ -227,10 +219,6 @@ export default function ProfileForm({ isClient = true }) {
         data: { publicUrl },
       } = supabase.storage.from("portfolio").getPublicUrl(filePath);
 
-      console.log(
-        `Updating ${tableToUse} with new cover image URL:`,
-        publicUrl
-      );
       const { error: updateError } = await supabase
         .from(tableToUse)
         .update({ cover_image: publicUrl })
@@ -240,12 +228,12 @@ export default function ProfileForm({ isClient = true }) {
 
       setProfile((prev) => ({ ...prev, cover_image: publicUrl }));
 
-      toast("Cover image updated", {
+      toast.success("Cover image updated", {
         description: "Your cover image has been updated successfully.",
       });
     } catch (error: any) {
       console.error("Error uploading cover image:", error);
-      toast("Error uploading cover image", {
+      toast.error("Error uploading cover image", {
         description: error.message,
       });
     } finally {
@@ -528,12 +516,12 @@ export default function ProfileForm({ isClient = true }) {
 
                     setProfile((prev) => ({ ...prev, avatar_url: "" }));
 
-                    toast("Avatar removed", {
+                    toast.success("Avatar removed", {
                       description: "Your profile photo has been removed.",
                     });
                   } catch (error: any) {
                     console.error("Error removing avatar:", error);
-                    toast("Error removing avatar", {
+                    toast.error("Error removing avatar", {
                       description: error.message,
                     });
                   } finally {
@@ -565,6 +553,8 @@ export default function ProfileForm({ isClient = true }) {
                 className="w-full h-full object-cover"
               />
             </div>
+            <Toaster />
+
             <Button
               type="button"
               variant="outline"

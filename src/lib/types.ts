@@ -1,15 +1,18 @@
 export interface Photographer {
-  id: string
-  name: string
-  avatar: string
-  coverImage: string
-  location: string
-  rating: number
-  specialties: string[]
-  price: number
-  bio: string
-  portfolio: PortfolioItem[]
-  availability?: string[]
+  id: string;
+  name: string;
+  avatar_url: string;
+  coverImage: string;
+  location: string;
+  rating: number;
+  specialties: string[] | string;
+  price: number;
+  hourly_rate:number
+  cover_image:string
+  portfolio: PortfolioItem[];
+  availability?: string[];
+  bio:string  
+  base_price:number
 }
 
 export interface PortfolioItem  {
@@ -21,7 +24,7 @@ export interface PortfolioItem  {
   imageUrl: string;
   created_at: string;
   file?: File;
-  preview?: string;
+  preview?: string | any;
 };
 
 export interface Booking {

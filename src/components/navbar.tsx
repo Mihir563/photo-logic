@@ -25,6 +25,7 @@ import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { toast, Toaster } from "sonner";
 
 export default function Navbar() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -35,6 +36,21 @@ export default function Navbar() {
     avatar_url: string;
   } | null>(null);
   const router = useRouter();
+  
+  const handleAuth = () => {
+    router.push("/auth");
+  };
+  
+  const handleLogout = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      console.error("Error logging out:", error.message);
+    } else {
+      router.push("/auth");
+      toast.success("Logged Out Successfully")
+    }
+  };
+
 
   useEffect(() => {
     const getUserData = async () => {
@@ -49,7 +65,7 @@ export default function Navbar() {
 
       const user = authData?.user;
       if (!user) {
-        console.log("No user is logged in");
+        router.push('/auth')
       } else {
         setIsLoggedIn(true);
       }
@@ -73,25 +89,39 @@ export default function Navbar() {
     };
 
     getUserData();
-  }, []);
+  }, [handleAuth, handleLogout, router]);
+useEffect(() => {
+  const {
+    data: { subscription },
+  } = supabase.auth.onAuthStateChange(async (event, session) => {
+    if (session?.user) {
+      // User logged in
+      const { data: profileData, error: profileError } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", session.user.id)
+        .single();
 
-  useEffect(() => {});
-
-  console.log(user);
-
-  const handleAuth = () => {
-    router.push("/auth");
-  };
-
-  const handleLogout = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      console.error("Error logging out:", error.message);
+      if (!profileError) {
+        setUser(profileData);
+        setName(profileData.name);
+        setEmail(profileData.email);
+        setIsLoggedIn(true);
+      }
     } else {
-      router.push("/auth");
-      console.log("Successfully logged out!");
+      // User logged out
+      setUser(null);
+      setName("");
+      setEmail("");
+      setIsLoggedIn(false);
     }
+  });
+
+  return () => {
+    subscription.unsubscribe(); // Clean up
   };
+}, []);
+
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -108,21 +138,21 @@ export default function Navbar() {
               <text
                 x="40"
                 y="47"
-                text-anchor="middle"
-                font-family="Arial, sans-serif"
-                font-size="28"
+                textAnchor="middle"
+                fontFamily="Arial, sans-serif"
+                fontSize="28"
                 fill="#ffffff"
-                font-weight="bold"
+                fontWeight="bold"
               >
                 PL
               </text>
               <text
                 x="90"
                 y="50"
-                font-family="Helvetica, Arial, sans-serif"
-                font-size="32"
+                fontFamily="Helvetica, Arial, sans-serif"
+                fontSize="32"
                 fill="#1E3A8A"
-                font-weight="bold"
+                fontWeight="bold"
               >
                 PhotoLogic
               </text>
@@ -314,11 +344,11 @@ export default function Navbar() {
                     <text
                       x="40"
                       y="47"
-                      text-anchor="middle"
-                      font-family="Arial, sans-serif"
-                      font-size="28"
+                      textAnchor="middle"
+                      fontFamily="Arial, sans-serif"
+                      fontSize="28"
                       fill="#ffffff"
-                      font-weight="bold"
+                      fontWeight="bold"
                     >
                       PL
                     </text>
@@ -326,7 +356,7 @@ export default function Navbar() {
                 </Link>
 
                 <div className="grid gap-2">
-                  <Link href="/discover" className="flex py-2 px-2">
+                  <Link href="#discover" className="flex py-2 px-2">
                     Discover
                   </Link>
                   <Link href="/how-it-works" className="flex py-2 px-2">
@@ -382,6 +412,7 @@ export default function Navbar() {
           </Sheet>
         </div>
       </div>
+      <Toaster/>
     </header>
   );
 }

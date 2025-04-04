@@ -1,20 +1,24 @@
-"use client"
+"use client";
 
-import type { PortfolioItem } from "@/lib/types"
-import { Card, CardContent } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { useState } from "react"
+import type { PortfolioItem } from "@/lib/types";
+import { Card, CardContent } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useState } from "react";
 
 interface PortfolioGalleryProps {
-  portfolio: PortfolioItem[]
+  portfolio: PortfolioItem[];
 }
 
 export default function PortfolioGallery({ portfolio }: PortfolioGalleryProps) {
-  const [selectedImage, setSelectedImage] = useState<PortfolioItem | null>(null)
+  const [selectedImage, setSelectedImage] = useState<PortfolioItem | null>(
+    null
+  );
 
-  console.log(portfolio)
   // Get unique categories
-  const categories = ["All", ...new Set(portfolio.map((item) => item.category))]
+  const categories = [
+    "All",
+    ...new Set(portfolio.map((item) => item.category)),
+  ];
 
   return (
     <div>
@@ -95,4 +99,3 @@ export default function PortfolioGallery({ portfolio }: PortfolioGalleryProps) {
     </div>
   );
 }
-

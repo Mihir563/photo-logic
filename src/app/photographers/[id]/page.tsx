@@ -16,6 +16,8 @@ import {
   Instagram,
   Facebook,
   Twitter,
+  Clock,
+  Calendar as CalendarIcon,
 } from "lucide-react";
 import PortfolioGallery from "@/components/portfolio-gallery";
 import InquiryForm from "@/components/inquiry-form";
@@ -42,14 +44,46 @@ interface Photographer {
     description: string;
     createdAt: string;
   }>;
-  availability: string[];
+}
+
+interface Availability {
+  available_dates: string[];
+  settings: {
+    advanceNotice: string;
+    maxBookingsPerDay: string;
+    bufferBetweenBookings: string;
+  };
+  working_hours: {
+    monday: { start: string; end: string; available: boolean };
+    tuesday: { start: string; end: string; available: boolean };
+    wednesday: { start: string; end: string; available: boolean };
+    thursday: { start: string; end: string; available: boolean };
+    friday: { start: string; end: string; available: boolean };
+    saturday: { start: string; end: string; available: boolean };
+    sunday: { start: string; end: string; available: boolean };
+  };
 }
 
 export default function PhotographerProfile() {
   const params = useParams();
   const [photographer, setPhotographer] = useState<Photographer | null>(null);
+  const [pricingPackages, setPricingPackages] = useState<any[] | null>(null);
+  const [availability, setAvailability] = useState<Availability | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [clientId, setClientId] = useState<Number | any>(null);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const { data, error } = await supabase.auth.getUser();
+      if (error) {
+        console.error("Error fetching user:", error);
+      } else {
+        setClientId(data?.user?.id || null);
+      }
+    };
+    fetchUser();
+  }, []);
 
   useEffect(() => {
     const fetchPhotographer = async () => {
@@ -62,8 +96,7 @@ export default function PhotographerProfile() {
           .select(
             `
     *,
-    portfolio(*),
-    availability(available_dates)
+    portfolio(*)
   `
           )
           .eq("id", params.id)
@@ -76,7 +109,6 @@ export default function PhotographerProfile() {
           return;
         }
 
-        console.log;
         if (!data) {
           notFound();
           return;
@@ -85,7 +117,7 @@ export default function PhotographerProfile() {
         // Transform data if needed
         const transformedData = {
           ...data,
-          specialties: data.specialties.map((s: any) => s.specialty || s.name),
+          specialties: data.specialties,
           portfolio: data.portfolio.map((p: any) => ({
             title: p.title,
             id: p.id,
@@ -93,9 +125,8 @@ export default function PhotographerProfile() {
             category: p.category,
             description: p.description,
             createdAt: p.created_at,
+            specialties: p.specialties,
           })),
-
-          availability: data.availability.map((a: any) => a.date),
         };
 
         setPhotographer(transformedData);
@@ -107,10 +138,83 @@ export default function PhotographerProfile() {
       }
     };
 
+    // Fetch pricing packages from Supabase
+    const fetchPricingPackages = async () => {
+      try {
+        setLoading(true);
+
+        // Fetch pricing packages from Supabase
+        const { data, error } = await supabase
+          .from("pricing_packages")
+          .select("*")
+          .eq("user_id", params.id);
+
+        if (error) {
+          console.error("Error fetching pricing packages:", error);
+          setError(error.message);
+          return;
+        }
+
+        setPricingPackages(data);
+      } catch (err) {
+        console.error("Failed to fetch pricing packages:", err);
+        setError("Failed to load pricing packages");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    const fetchDates = async () => {
+      try {
+        setLoading(true);
+
+        // Fetch availability dates from Supabase
+        const { data, error } = await supabase
+          .from("availability")
+          .select("*")
+          .eq("user_id", params.id);
+
+        if (error) {
+          console.error("Error fetching availability:", error);
+          setError(error.message);
+          return;
+        }
+
+
+        if (data && data.length > 0) {
+          setAvailability(data[0]); // Use the first item since it contains all the data
+        }
+      } catch (err) {
+        console.error("Failed to fetch availability:", err);
+        setError("Failed to load availability data");
+      } finally {
+        setLoading(false);
+      }
+    };
+
     if (params.id) {
       fetchPhotographer();
+      fetchPricingPackages();
+      fetchDates();
     }
   }, [params.id]);
+
+  // Format time for display (e.g., "09:00" to "9:00 AM")
+  const formatTime = (timeStr: string) => {
+    if (!timeStr) return "";
+    const [hours, minutes] = timeStr.split(":");
+    const hour = parseInt(hours, 10);
+    const period = hour >= 12 ? "PM" : "AM";
+    const formattedHour = hour % 12 || 12;
+    return `${formattedHour}:${minutes} ${period}`;
+  };
+
+  const isAvailableDate = (date: Date) => {
+    if (!availability?.available_dates) return false;
+
+    const dateString = date.toISOString().split("T")[0]; // Format as YYYY-MM-DD
+    return availability.available_dates.includes(dateString);
+  };
 
   if (loading) {
     return (
@@ -273,99 +377,56 @@ export default function PhotographerProfile() {
 
         <TabsContent value="pricing">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <Card>
-              <CardContent className="pt-6">
-                <h3 className="text-xl font-bold mb-2">Basic Session</h3>
-                <div className="text-3xl font-bold mb-4">
-                  ${photographer?.base_price}{" "}
-                  <span className="text-sm font-normal text-muted-foreground">
-                    / hour
-                  </span>
-                </div>
-                <ul className="space-y-2 mb-6">
-                  <li className="flex items-center">
-                    <span className="mr-2">✓</span> 1 hour photo session
-                  </li>
-                  <li className="flex items-center">
-                    <span className="mr-2">✓</span> 10 edited digital photos
-                  </li>
-                  <li className="flex items-center">
-                    <span className="mr-2">✓</span> Online gallery
-                  </li>
-                  <li className="flex items-center">
-                    <span className="mr-2">✓</span> Personal use license
-                  </li>
-                </ul>
-                <Button className="w-full">Book This Package</Button>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="pt-6">
-                <h3 className="text-xl font-bold mb-2">Standard Session</h3>
-                <div className="text-3xl font-bold mb-4">
-                {/* @ts-ignore */}
-                  ${photographer?.base_price * 2}{" "}
-                  <span className="text-sm font-normal text-muted-foreground">
-                    / package
-                  </span>
-                </div>
-                <ul className="space-y-2 mb-6">
-                  <li className="flex items-center">
-                    <span className="mr-2">✓</span> 2 hour photo session
-                  </li>
-                  <li className="flex items-center">
-                    <span className="mr-2">✓</span> 25 edited digital photos
-                  </li>
-                  <li className="flex items-center">
-                    <span className="mr-2">✓</span> Online gallery
-                  </li>
-                  <li className="flex items-center">
-                    <span className="mr-2">✓</span> Personal use license
-                  </li>
-                  <li className="flex items-center">
-                    <span className="mr-2">✓</span> 1 outfit change
-                  </li>
-                </ul>
-                <Button className="w-full">Book This Package</Button>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="pt-6">
-                <h3 className="text-xl font-bold mb-2">Premium Session</h3>
-                <div className="text-3xl font-bold mb-4">{/* @ts-ignore */}
-                  ${photographer?.base_price * 4}{" "}
-                  <span className="text-sm font-normal text-muted-foreground">
-                    / package
-                  </span>
-                </div>
-                <ul className="space-y-2 mb-6">
-                  <li className="flex items-center">
-                    <span className="mr-2">✓</span> 4 hour photo session
-                  </li>
-                  <li className="flex items-center">
-                    <span className="mr-2">✓</span> 50 edited digital photos
-                  </li>
-                  <li className="flex items-center">
-                    <span className="mr-2">✓</span> Online gallery
-                  </li>
-                  <li className="flex items-center">
-                    <span className="mr-2">✓</span> Commercial use license
-                  </li>
-                  <li className="flex items-center">
-                    <span className="mr-2">✓</span> Multiple locations
-                  </li>
-                  <li className="flex items-center">
-                    <span className="mr-2">✓</span> 3 outfit changes
-                  </li>
-                </ul>
-                <Button className="w-full">Book This Package</Button>
-              </CardContent>
-            </Card>
+            {pricingPackages?.map((pkg: any, index: number) => (
+              <Card key={pkg.id}>
+                <CardContent className="pt-6">
+                  <h3 className="text-xl font-bold mb-2">{pkg.name}</h3>
+                  <div className="text-3xl font-bold mb-4">
+                    ₹{pkg.price}{" "}
+                    <span className="text-sm font-normal text-muted-foreground">
+                      {pkg.duration ? "/ hour" : "/ package"}
+                    </span>
+                  </div>
+                  <ul className="space-y-2 mb-6">
+                    {pkg.included && pkg.included.length > 0 ? (
+                      pkg.included.map((item: any, i: number) => (
+                        <li key={i} className="flex items-center">
+                          <span className="mr-2">✓</span> {item}
+                        </li>
+                      ))
+                    ) : (
+                      <>
+                        <li className="flex items-center">
+                          <span className="mr-2">✓</span> {pkg.duration} hour
+                          photo session
+                        </li>
+                        <li className="flex items-center">
+                          <span className="mr-2">✓</span> Online gallery
+                        </li>
+                        <li className="flex items-center">
+                          <span className="mr-2">✓</span>{" "}
+                          {pkg.name === "Basic Session"
+                            ? "Personal"
+                            : "Commercial"}{" "}
+                          use license
+                        </li>
+                        {pkg.duration > 1 && (
+                          <li className="flex items-center">
+                            <span className="mr-2">✓</span>{" "}
+                            {pkg.duration > 2
+                              ? "Multiple locations"
+                              : "1 location"}
+                          </li>
+                        )}
+                      </>
+                    )}
+                  </ul>
+                  <Button className="w-full">Book This Package</Button>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </TabsContent>
-
         <TabsContent value="availability">
           <div className="flex flex-col md:flex-row gap-8">
             <div className="flex-1">
@@ -373,29 +434,117 @@ export default function PhotographerProfile() {
               <Calendar
                 mode="multiple"
                 selected={
-                  photographer?.availability?.map((date) => new Date(date)) ||
-                  []
+                  availability?.available_dates?.map(
+                    (dateStr) => new Date(dateStr)
+                  ) || []
                 }
                 className="rounded-md border"
               />
+              <div className="mt-6">
+                <h4 className="text-lg font-semibold mb-3">
+                  Available Dates List
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                  {availability?.available_dates?.map((dateStr, index) => {
+                    const date = new Date(dateStr);
+                    return (
+                      <div
+                        key={index}
+                        className="flex items-center p-2 border rounded-md"
+                      >
+                        <CalendarIcon className="h-4 w-4 mr-2 text-primary" />
+                        <span>
+                          {date.toLocaleDateString("en-US", {
+                            weekday: "short",
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
+                          })}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
             <div className="flex-1">
-              <h3 className="text-xl font-bold mb-4">Book a Session</h3>
-              <Card>
-                <CardContent className="pt-6">
-                  <p className="mb-4">
-                    Select an available date from the calendar and book your
-                    session.
-                  </p>
-                  <Button className="w-full">Request Booking</Button>
-                </CardContent>
-              </Card>
+              <div className="mb-6">
+                <h3 className="text-xl font-bold mb-4">Working Hours</h3>
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="space-y-3">
+                      {availability?.working_hours &&
+                        Object.entries(availability.working_hours).map(
+                          ([day, hours]) => (
+                            <div
+                              key={day}
+                              className="flex justify-between items-center"
+                            >
+                              <div className="capitalize font-medium">
+                                {day}
+                              </div>
+                              <div className="flex items-center">
+                                {hours.available ? (
+                                  <>
+                                    <Clock className="h-4 w-4 mr-2 text-green-500" />
+                                    <span>
+                                      {formatTime(hours.start)} -{" "}
+                                      {formatTime(hours.end)}
+                                    </span>
+                                  </>
+                                ) : (
+                                  <span className="text-muted-foreground">
+                                    Not Available
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          )
+                        )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+              <div>
+                <h3 className="text-xl font-bold mb-4">Booking Settings</h3>
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="space-y-2">
+                      {availability?.settings && (
+                        <>
+                          <div className="flex justify-between">
+                            <span>Advance Notice Required:</span>
+                            <span className="font-medium">
+                              {availability.settings.advanceNotice} hours
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Max Bookings Per Day:</span>
+                            <span className="font-medium">
+                              {availability.settings.maxBookingsPerDay}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Buffer Between Bookings:</span>
+                            <span className="font-medium">
+                              {availability.settings.bufferBetweenBookings}{" "}
+                              minutes
+                            </span>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                    <Button className="w-full mt-4">Request Booking</Button>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
           </div>
         </TabsContent>
 
         <TabsContent value="inquire">
           <InquiryForm
+            clientId={clientId}
             photographerId={photographer?.id}
             photographerName={photographer?.name}
           />

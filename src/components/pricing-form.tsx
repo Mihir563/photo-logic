@@ -13,10 +13,21 @@ import { Textarea } from "@/components/ui/textarea";
 import { DollarSign, IndianRupee, Plus, Trash } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { toast } from "sonner";
+import { toast, Toaster } from "sonner";
 
 export default function PricingForm() {
-  const [packages, setPackages] = useState([]);
+  const [packages, setPackages] = useState<
+    {
+      id: string;
+      name: string;
+      price: number;
+      duration: number;
+      description: string;
+      included: string[];
+      isNew?: boolean;
+      hasChanges?: boolean;
+    }[]
+  >([]);
   const [hourlyRate, setHourlyRate] = useState("150");
   const [loading, setLoading] = useState(true);
 
@@ -32,7 +43,7 @@ export default function PricingForm() {
         } = await supabase.auth.getUser();
 
         if (!user) {
-          toast(
+          toast.error(
            "Authentication error",{
             description: "Please sign in to manage your pricing packages",
           });
@@ -93,12 +104,11 @@ export default function PricingForm() {
             },
           ]);
         }
-      } catch (error) {
+      } catch (error:any) {
         console.error("Error fetching data:", error);
-        toast({
-          title: "Error fetching data",
+        toast.error(
+          "Error fetching data",{
           description: error.message || "Failed to load your pricing packages",
-          variant: "destructive",
         });
       } finally {
         setLoading(false);
@@ -127,16 +137,15 @@ export default function PricingForm() {
 
       if (error) throw error;
 
-      toast({
-        title: "Hourly rate updated",
+      toast.success(
+        "Hourly rate updated",{
         description: "Your hourly rate has been saved successfully",
       });
     } catch (error) {
       console.error("Error saving hourly rate:", error);
-      toast({
-        title: "Error saving hourly rate",
-        description: error.message,
-        variant: "destructive",
+      toast.error(
+        "Error saving hourly rate",{
+        description: error instanceof Error ? error.message : "An unknown error occurred",
       });
     }
   };
@@ -154,7 +163,7 @@ export default function PricingForm() {
     setPackages([...packages, newPackage]);
   };
 
-  const removePackage = async (id) => {
+  const removePackage = async (id:any) => {
     try {
       // If it's a temporary ID (hasn't been saved to Supabase yet)
       if (id.startsWith("temp-")) {
@@ -172,21 +181,20 @@ export default function PricingForm() {
 
       setPackages(packages.filter((pkg) => pkg.id !== id));
 
-      toast({
-        title: "Package removed",
+      toast.success(
+        "Package removed",{
         description: "Your package has been deleted successfully",
       });
-    } catch (error) {
+    } catch (error:any) {
       console.error("Error removing package:", error);
-      toast({
-        title: "Error removing package",
+      toast.error(
+       "Error removing package",{
         description: error.message,
-        variant: "destructive",
       });
     }
   };
 
-  const handlePackageChange = (id, field, value) => {
+  const handlePackageChange = (id:any, field:any, value:any) => {
     setPackages(
       packages.map((pkg) => {
         if (pkg.id === id) {
@@ -197,7 +205,7 @@ export default function PricingForm() {
     );
   };
 
-  const handleIncludedItemChange = (packageId, itemIndex, value) => {
+  const handleIncludedItemChange = (packageId:any, itemIndex:any, value:any) => {
     setPackages(
       packages.map((pkg) => {
         if (pkg.id === packageId) {
@@ -210,7 +218,7 @@ export default function PricingForm() {
     );
   };
 
-  const addIncludedItem = (packageId) => {
+  const addIncludedItem = (packageId:any) => {
     setPackages(
       packages.map((pkg) => {
         if (pkg.id === packageId) {
@@ -225,7 +233,7 @@ export default function PricingForm() {
     );
   };
 
-  const removeIncludedItem = (packageId, itemIndex) => {
+  const removeIncludedItem = (packageId:any, itemIndex:any) => {
     setPackages(
       packages.map((pkg) => {
         if (pkg.id === packageId) {
@@ -249,10 +257,9 @@ export default function PricingForm() {
       } = await supabase.auth.getUser();
 
       if (!user) {
-        toast({
-          title: "Authentication error",
+        toast.error(
+          "Authentication error",{
           description: "Please sign in to save your pricing packages",
-          variant: "destructive",
         });
         return;
       }
@@ -261,7 +268,16 @@ export default function PricingForm() {
       await saveHourlyRate();
 
       // Process each package
-      for (const pkg of packages) {
+      for (const pkg of packages as Array<{
+        id: string;
+        name: string;
+        price: any;
+        duration:any;
+        description: string;
+        included: string[];
+        isNew?: boolean;
+        hasChanges?: boolean;
+      }>) {
         // Format the package data for Supabase
         const packageData = {
           user_id: user.id,
@@ -312,16 +328,15 @@ export default function PricingForm() {
 
       setPackages(formattedPackages);
 
-      toast({
-        title: "Packages saved",
+      toast.success(
+        "Packages saved",{
         description: "Your pricing packages have been saved successfully",
       });
-    } catch (error) {
+    } catch (error:any) {
       console.error("Error saving packages:", error);
-      toast({
-        title: "Error saving packages",
+      toast.success(
+        "Error saving packages",{
         description: error.message,
-        variant: "destructive",
       });
     }
   };
@@ -378,7 +393,6 @@ export default function PricingForm() {
             {packages.map((pkg, index) => (
               <div key={pkg.id} className="border rounded-lg p-6 relative">
                 <Button
-                  variant="ghost"
                   size="icon"
                   className="absolute top-4 right-4 text-muted-foreground hover:text-destructive"
                   onClick={() => removePackage(pkg.id)}
@@ -494,7 +508,6 @@ export default function PricingForm() {
                             />
                             {itemIndex === pkg.included.length - 1 ? (
                               <Button
-                                variant="outline"
                                 size="icon"
                                 onClick={() => addIncludedItem(pkg.id)}
                               >
@@ -502,7 +515,6 @@ export default function PricingForm() {
                               </Button>
                             ) : (
                               <Button
-                                variant="outline"
                                 size="icon"
                                 onClick={() =>
                                   removeIncludedItem(pkg.id, itemIndex)
@@ -520,6 +532,8 @@ export default function PricingForm() {
               </div>
             ))}
           </div>
+
+            <Toaster/>
 
           <div className="mt-6">
             <Button onClick={savePackages}>Save Pricing</Button>

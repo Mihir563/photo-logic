@@ -1,9 +1,15 @@
+import { redirect } from 'next/navigation'
 import React from 'react'
 
-const Page = () => {
+const page = () => {
+  
+  redirect('/search')
+  
   return (
-    <div>Page</div>
+    <div>
+
+    </div>
   )
 }
 
-export default Page
+export default page
