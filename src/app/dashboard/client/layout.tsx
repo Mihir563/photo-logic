@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect } from "react";
 import CosmicLoader from "@/app/loading";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 
 export default function ClientLayout({
   children,
@@ -13,13 +13,14 @@ export default function ClientLayout({
 }) {
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   useEffect(() => {
-    // If we're at the root client dashboard, redirect to the bookings tab
-    if (pathname === "/dashboard/client") {
-      router.replace("/dashboard/client/bookings");
+    // If we're at the root client dashboard with no tab parameter, redirect to the bookings tab
+    if (pathname === "/dashboard/client" && !searchParams.get("tab")) {
+      router.replace("/dashboard/client?tab=bookings");
     }
-  }, [pathname, router]);
+  }, [pathname, router, searchParams]);
 
   return (
     <div className="flex flex-col gap-8">

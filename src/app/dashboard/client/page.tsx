@@ -4,28 +4,23 @@ import { Button } from "@/components/ui/button";
 import { MessageSquare, Camera, CalendarIcon } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
 export default function ClientDashboard() {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
-  // Get the current active tab from URL
+  // Get the current active tab from URL query parameters
   const getCurrentTab = () => {
-    if (typeof window !== "undefined") {
-      const path = window.location.pathname;
-      const segments = path.split("/");
-      const lastSegment = segments[segments.length - 1];
+    const tab = searchParams.get("tab");
+    // If no tab specified, default to "bookings"
+    if (!tab) return "bookings";
 
-      // If on base client dashboard URL, default to "bookings"
-      if (lastSegment === "client") return "bookings";
+    // Check if the tab is one of our valid tabs
+    const validTabs = ["bookings", "messages", "profile"];
+    if (validTabs.includes(tab)) return tab;
 
-      // Check if the last segment is one of our valid tabs
-      const validTabs = ["bookings", "messages", "profile"];
-      if (validTabs.includes(lastSegment)) return lastSegment;
-
-      return "bookings";
-    }
     return "bookings";
   };
 
@@ -90,30 +85,27 @@ export default function ClientDashboard() {
 
       <Tabs defaultValue={getCurrentTab()} className="mt-8">
         <TabsList className="grid w-full grid-cols-3 mb-8">
-          <Link href="/dashboard/client/bookings" passHref>
-            <TabsTrigger
-              value="bookings"
-              data-active={getCurrentTab() === "bookings"}
-            >
-              My Bookings
-            </TabsTrigger>
-          </Link>
-          <Link href="/dashboard/client/messages" passHref>
-            <TabsTrigger
-              value="messages"
-              data-active={getCurrentTab() === "messages"}
-            >
-              Messages
-            </TabsTrigger>
-          </Link>
-          <Link href="/dashboard/client/profile" passHref>
-            <TabsTrigger
-              value="profile"
-              data-active={getCurrentTab() === "profile"}
-            >
-              Profile
-            </TabsTrigger>
-          </Link>
+          <TabsTrigger
+            value="bookings"
+            onClick={() => router.push("/dashboard/client?tab=bookings")}
+            data-active={getCurrentTab() === "bookings"}
+          >
+            My Bookings
+          </TabsTrigger>
+          <TabsTrigger
+            value="messages"
+            onClick={() => router.push("/dashboard/client?tab=messages")}
+            data-active={getCurrentTab() === "messages"}
+          >
+            Messages
+          </TabsTrigger>
+          <TabsTrigger
+            value="profile"
+            onClick={() => router.push("/dashboard/client?tab=profile")}
+            data-active={getCurrentTab() === "profile"}
+          >
+            Profile
+          </TabsTrigger>
         </TabsList>
       </Tabs>
     </>
