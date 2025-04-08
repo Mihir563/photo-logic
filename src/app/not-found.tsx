@@ -1,8 +1,14 @@
 'use client';
 
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 export default function NotFoundPage() {
+
+  const router = useRouter()
+  const handleBack = () => {
+    router.back()
+  }
+  
   return (
     <div className="flex h-screen w-full flex-col items-center justify-center bg-black text-white">
       <div className="relative text-center">
@@ -14,11 +20,9 @@ export default function NotFoundPage() {
           You might have taken a wrong turn into the void.
         </p>
       </div>
-      <Link href="/">
-        <button className="mt-6 rounded-lg bg-blue-600 px-6 py-3 text-lg font-bold text-white transition-transform transform hover:scale-105 hover:bg-blue-700 shadow-md shadow-blue-500">
+        <button onClick={() => {handleBack()}} className="mt-6 rounded-lg bg-blue-600 px-6 py-3 text-lg font-bold text-white transition-transform transform hover:scale-105 hover:bg-blue-700 shadow-md shadow-blue-500">
           Go Back Home
         </button>
-      </Link>
       
       <style jsx>{`
         .glitch {

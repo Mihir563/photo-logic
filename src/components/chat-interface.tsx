@@ -11,6 +11,8 @@ import { RealtimeChannel } from "@supabase/supabase-js";
 import { toast, Toaster } from "sonner";
 import { format } from "date-fns";
 import { ArrowLeft } from "lucide-react";
+import axios from 'axios'
+import ChatBubble from "./ChatBubble";
 
 interface ChatContact {
   id: string;
@@ -19,6 +21,13 @@ interface ChatContact {
   lastMessage: string;
   timestamp: string;
   unread: boolean;
+}
+
+interface contactPerson {
+  id: number;
+  name: string;
+  avatar_url: string;
+
 }
 
 interface ChatMessage {
@@ -44,6 +53,8 @@ export default function ChatInterface() {
   const [showContacts, setShowContacts] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesSubscriptionRef = useRef<RealtimeChannel | null>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [isContactTyping, setIsContactTyping] = useState(false);
 
   // Fetch messages when active chat changes
   const fetchMessages = useCallback(async () => {
@@ -74,16 +85,18 @@ export default function ChatInterface() {
           }))
         );
 
-        // Mark unread messages as read
+        // Mark unread messages as read using the API
         const unreadMessages = data
           .filter((msg) => !msg.read && msg.sender_id === activeChat)
           .map((msg) => msg.id);
 
         if (unreadMessages.length > 0) {
-          await supabase
-            .from("messages")
-            .update({ read: true })
-            .in("id", unreadMessages);
+          await axios.post("/api/message", {
+            senderId: activeChat,
+            receiverId: currentUser.id,
+            content: unreadMessages,
+            action: "read",
+          });
 
           // Update contacts unread status
           setContacts((prev) =>
@@ -95,8 +108,9 @@ export default function ChatInterface() {
           );
         }
       }
-    } catch (error: any) {
+    } catch (error) {
       toast.error("Error loading messages", {
+        //@ts-expect-error : dont know what is error in this!!!
         description: error.message,
       });
     } finally {
@@ -164,15 +178,17 @@ export default function ChatInterface() {
         // Process contacts
         const contactsMap = new Map();
 
-        messagesData.forEach((message:any) => {
+        messagesData.forEach((message) => {
           const isCurrentUserSender = message.sender_id === userId;
-          const contactPerson = isCurrentUserSender
-            ? message.receiver
-            : message.sender;
+          const contactPerson: contactPerson = isCurrentUserSender
+            ? message.receiver[0]
+            : message.sender[0];
 
-          if (!contactPerson || !contactPerson?.id) return;
+          if (!contactPerson || !Array.isArray(contactPerson)) return;
+          const person = contactPerson[0];
+          if (!person?.id) return;
 
-          const contactId = contactPerson.id;
+          const contactId : number = contactPerson.id;
 
           if (!contactsMap.has(contactId)) {
             contactsMap.set(contactId, {
@@ -193,14 +209,48 @@ export default function ChatInterface() {
           setActiveChat(Array.from(contactsMap.keys())[0]);
         }
       }
-    } catch (error: any) {
+    } catch (error) {
       toast.error("Error loading chats", {
+        //@ts-expect-error : dont know what is error in this!!!
         description: error.message,
       });
     } finally {
       setLoading(false);
     }
   }, [currentUser, activeChat]);
+
+  // Set up typing indicator
+  const handleTypingIndicator = useCallback(
+    (isTyping: boolean) => {
+      if (!currentUser || !activeChat) return;
+
+      // Clear any existing timeout
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+
+      // Send typing status via API
+      axios.post("/api/message", {
+        senderId: currentUser.id,
+        receiverId: activeChat,
+        content: isTyping,
+        action: "typing",
+      });
+
+      // If typing, set a timeout to clear the typing status after 5 seconds
+      if (isTyping) {
+        typingTimeoutRef.current = setTimeout(() => {
+          axios.post("/api/message", {
+            senderId: currentUser.id,
+            receiverId: activeChat,
+            content: false,
+            action: "typing",
+          });
+        }, 5000);
+      }
+    },
+    [currentUser, activeChat]
+  );
 
   // Initial setup - fetch user data and set up subscription
   useEffect(() => {
@@ -211,8 +261,11 @@ export default function ChatInterface() {
       if (messagesSubscriptionRef.current) {
         supabase.removeChannel(messagesSubscriptionRef.current);
       }
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
     };
-  }, []);
+  }, [fetchUserAndContacts]);
 
   // Set up real-time subscription for new messages
   useEffect(() => {
@@ -257,7 +310,8 @@ export default function ChatInterface() {
     messagesSubscriptionRef.current = channel;
 
     // Handler for new messages
-    const handleNewMessage = async (newMessage:any) => {
+    //@ts-expect-error : dont know what is error in this!!!
+    const handleNewMessage = async (newMessage) => {
       // Is this from a new contact?
       const isNewContact =
         newMessage.sender_id !== currentUser.id &&
@@ -334,10 +388,12 @@ export default function ChatInterface() {
 
         // Mark as read if it's from the other person and in active chat
         if (newMessage.sender_id === activeChat) {
-          await supabase
-            .from("messages")
-            .update({ read: true })
-            .eq("id", newMessage.id);
+          await axios.post("/api/message", {
+            senderId: activeChat,
+            receiverId: currentUser.id,
+            content: [newMessage.id],
+            action: "read",
+          });
         }
       }
     };
@@ -367,7 +423,8 @@ export default function ChatInterface() {
   }, [messages]);
 
   // Handle chat selection on mobile
-  const handleChatSelect = (contactId:any) => {
+  //@ts-expect-error : dont know what is error in this!!!
+  const handleChatSelect = (contactId) => {
     setActiveChat(contactId);
     if (window.innerWidth < 768) {
       setShowContacts(false);
@@ -377,6 +434,12 @@ export default function ChatInterface() {
   // Handle back button on mobile
   const handleBackToContacts = () => {
     setShowContacts(true);
+  };
+
+  // Handle message input change and trigger typing indicator
+  const handleMessageInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setMessageText(e.target.value);
+    handleTypingIndicator(e.target.value.trim().length > 0);
   };
 
   const sendMessage = async () => {
@@ -389,19 +452,15 @@ export default function ChatInterface() {
       // Clear input before sending to improve UX
       setMessageText("");
 
-      const newMessage = {
-        sender_id: currentUser.id,
-        receiver_id: activeChat,
-        content: newMessageContent,
-        created_at: timestamp,
-        read: false,
-      };
+      // Clear typing indicator
+      handleTypingIndicator(false);
 
       // Add to local state immediately for instant UI update
+      const tempId = `temp-${Date.now()}`;
       setMessages((prev) => [
         ...prev,
         {
-          id: `temp-${Date.now()}`, // Temporary ID until we get real one from DB
+          id: tempId,
           senderId: currentUser.id,
           receiverId: activeChat,
           content: newMessageContent,
@@ -410,12 +469,17 @@ export default function ChatInterface() {
         },
       ]);
 
-      const { data, error } = await supabase
-        .from("messages")
-        .insert([newMessage])
-        .select();
+      // Send message via API
+      const response = await axios.post("/api/message", {
+        senderId: currentUser.id,
+        receiverId: activeChat,
+        content: newMessageContent,
+        action: "send",
+      });
 
-      if (error) throw error;
+      if (!response.data.success) {
+        throw new Error(response.data.error || "Failed to send message");
+      }
 
       // Update contacts with latest message
       setContacts((prev) =>
@@ -432,31 +496,81 @@ export default function ChatInterface() {
       );
 
       // Update the message with the real ID from the database if needed
-      if (data && data[0]) {
+      if (response.data && response.data.message) {
         setMessages((prev) =>
           prev.map((msg) =>
-            msg.id === `temp-${Date.now()}`
+            msg.id === tempId
               ? {
-                  id: data[0].id,
-                  senderId: data[0].sender_id,
-                  receiverId: data[0].receiver_id,
-                  content: data[0].content,
-                  timestamp: data[0].created_at,
-                  read: data[0].read,
+                  id: response.data.message.id,
+                  senderId: response.data.message.sender_id,
+                  receiverId: response.data.message.receiver_id,
+                  content: response.data.message.content,
+                  timestamp: response.data.message.created_at,
+                  read: response.data.message.read,
                 }
               : msg
           )
         );
       }
-    } catch (error: any) {
+    } catch (error) {
+      console.error("Error sending message:", error);
+
+      // Remove the temporary message from the UI
+      setMessages((prev) => prev.filter((msg) => !msg.id.startsWith("temp-")));
+
+      // Show error toast with more detailed information
       toast.error("Error sending message", {
-        description: error.message,
+        description:
+          (error as { response?: { data?: { error?: string } } })?.response?.data?.error ||
+          (error instanceof Error ? error.message : "Unknown error") ||
+          "Failed to send message",
       });
+
+      // Restore the message text so user can try again
+      setMessageText(messageText);
     }
   };
 
   const activeContact = contacts.find((contact) => contact.id === activeChat);
 
+  // Get contact status
+  const fetchContactStatus = useCallback(async () => {
+    if (!activeChat) return;
+
+    console.log("Rendeering")
+    try {
+      const response = await axios.get(`/api/message?userId=${activeChat}`);
+      const data = response.data;
+
+      // Handle status information
+    if (data.status === "typing" && data.typingTo === currentUser?.id) {
+      setIsContactTyping(true);
+    } else {
+      setIsContactTyping(false);
+    }
+    } catch (error) {
+      console.error("Error fetching contact status:", error);
+    }
+  }, [currentUser?.id,activeChat ]);
+
+
+  // Check contact status periodically
+  useEffect(() => {
+    if (!activeChat) return;
+
+    // Initial check
+    fetchContactStatus();
+
+    // Set up interval for checking (every 5 seconds)
+    const statusInterval = setInterval(fetchContactStatus, 5000);
+
+    return () => {
+      clearInterval(statusInterval);
+    };
+  }, [activeChat, fetchContactStatus]);
+
+  console.log(messages);
+  console.log(contacts)
   return (
     <div className="flex h-[calc(100vh-4rem)] max-h-[600px] border rounded-lg overflow-hidden">
       {/* Contact List - Hidden on mobile when in chat view */}
@@ -634,8 +748,8 @@ export default function ChatInterface() {
             </div>
 
             {/* Chat Messages */}
-            <div className="flex-1 p-4 overflow-y-auto ">
-              <div className="space-y-4">
+            <div className="flex-1 p-4 overflow-y-auto">
+              <div className="space-y-6">
                 {messages.length > 0 ? (
                   messages.map((message) => {
                     const isCurrentUser = message.senderId === currentUser?.id;
@@ -643,11 +757,12 @@ export default function ChatInterface() {
                     return (
                       <div
                         key={message.id}
-                        className={`flex items-start gap-3 max-w-[85%] ${
+                        className={`flex items-end gap-3 max-w-[85%] ${
                           isCurrentUser ? "ml-auto flex-row-reverse" : ""
                         }`}
                       >
-                        <Avatar className="mt-1 h-8 w-8 md:h-10 md:w-10">
+                        {/* Avatar */}
+                        <Avatar className="h-8 w-8 md:h-10 md:w-10 shrink-0">
                           <AvatarImage
                             src={
                               isCurrentUser
@@ -659,28 +774,48 @@ export default function ChatInterface() {
                             alt={isCurrentUser ? "You" : activeContact.name}
                           />
                           <AvatarFallback>
-                            {isCurrentUser
-                              ? currentUser.name.charAt(0)
-                              : activeContact.name.charAt(0)}
+                            {(isCurrentUser
+                              ? currentUser.name
+                              : activeContact.name
+                            )?.charAt(0)}
                           </AvatarFallback>
                         </Avatar>
-                        <div>
-                          <div
-                            className={`${
-                              isCurrentUser
-                                ? "bg-primary text-primary-foreground"
-                                : "bg-muted"
-                            } p-2 md:p-3 rounded-lg text-sm md:text-base`}
-                          >
-                            <p className={`break-words whitespace-pre-wrap w-60 ${isCurrentUser? "text-right" : "textlef"}`}>{message.content}</p>
-                          </div>
+
+                        {/* Message bubble and timestamp */}
+                        <div className="space-y-1">
+                          <ChatBubble
+                            content={message.content}
+                            isCurrentUser={isCurrentUser}
+                          />
                           <span
-                            className={`text-xs text-muted-foreground mt-1 block ${
-                              isCurrentUser ? "text-right" : ""
+                            className={`text-xs text-muted-foreground block ${
+                              isCurrentUser ? "text-right" : "text-left"
                             }`}
                           >
                             {format(new Date(message.timestamp), "h:mm a")}
                           </span>
+                          {isContactTyping && (
+                            <div className="flex items-start gap-3 max-w-[85%]">
+                              <Avatar className="h-8 w-8 md:h-10 md:w-10 shrink-0">
+                                <AvatarImage
+                                  src={
+                                    activeContact.avatar ||
+                                    "/placeholder.svg?height=40&width=40"
+                                  }
+                                  alt={activeContact.name}
+                                />
+                                <AvatarFallback>
+                                  {activeContact.name?.charAt(0)}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="space-y-1">
+                                <ChatBubble
+                                  content="typing..."
+                                  isCurrentUser={false}
+                                />
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
                     );
@@ -692,11 +827,13 @@ export default function ChatInterface() {
                     </p>
                   </div>
                 )}
+
+                {/* Scroll anchor */}
                 <div ref={messagesEndRef} />
               </div>
             </div>
 
-            <Toaster/>
+            <Toaster />
 
             {/* Chat Input */}
             <div className="p-2 md:p-4 border-t">
@@ -710,7 +847,7 @@ export default function ChatInterface() {
                 <Input
                   placeholder="Type your message..."
                   value={messageText}
-                  onChange={(e) => setMessageText(e.target.value)}
+                  onChange={handleMessageInputChange}
                   className="flex-1"
                 />
                 <Button type="submit" disabled={loading || !messageText.trim()}>

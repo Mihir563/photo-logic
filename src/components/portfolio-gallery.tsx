@@ -4,6 +4,7 @@ import type { PortfolioItem } from "@/lib/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useState } from "react";
+import Image from "next/image";
 
 interface PortfolioGalleryProps {
   portfolio: PortfolioItem[];
@@ -45,7 +46,9 @@ export default function PortfolioGallery({ portfolio }: PortfolioGalleryProps) {
                     onClick={() => setSelectedImage(item)}
                   >
                     <div className="aspect-square overflow-hidden">
-                      <img
+                      <Image
+                        height={200}
+                        width={200}
                         src={item.imageUrl || "/placeholder.svg"}
                         alt={item.title}
                         className="w-full h-full object-cover transition-transform hover:scale-105"
@@ -75,7 +78,9 @@ export default function PortfolioGallery({ portfolio }: PortfolioGalleryProps) {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="relative">
-              <img
+              <Image
+                height={800}
+                width={800}
                 src={selectedImage.imageUrl || "/placeholder.svg"}
                 alt={selectedImage.title}
                 className="w-full max-h-[80vh] object-contain"

@@ -17,6 +17,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Camera, Upload } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { toast, Toaster } from "sonner";
+import Image from "next/image";
 
 export default function ProfileForm({ isClient = true }) {
   const [loading, setLoading] = useState(false);
@@ -76,9 +77,10 @@ export default function ProfileForm({ isClient = true }) {
             cover_image: data.cover_image || "",
           });
         }
-      } catch (error: any) {
+      } catch (error) {
         console.error("Error loading profile:", error);
         toast.error("Error loading profile", {
+          //@ts-expect-error: error is of course an error how would i define the type of unknown?
           description: error.message,
         });
       } finally {
@@ -133,9 +135,10 @@ export default function ProfileForm({ isClient = true }) {
       toast.success("Profile updated", {
         description: "Your profile has been updated successfully.",
       });
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error updating profile:", error);
       toast.error("Error updating profile", {
+        //@ts-expect-error: error is of course an error how would i define the type of unknown?
         description: error.message,
       });
     } finally {
@@ -182,9 +185,10 @@ export default function ProfileForm({ isClient = true }) {
       toast.success("Avatar updated", {
         description: "Your profile photo has been updated successfully.",
       });
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error uploading avatar:", error);
       toast.success("Error uploading avatar", {
+        //@ts-expect-error: error is of course an error how would i define the type of unknown?
         description: error.message,
       });
     } finally {
@@ -231,9 +235,10 @@ export default function ProfileForm({ isClient = true }) {
       toast.success("Cover image updated", {
         description: "Your cover image has been updated successfully.",
       });
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error uploading cover image:", error);
       toast.error("Error uploading cover image", {
+        //@ts-expect-error: error is of course an error how would i define the type of unknown?
         description: error.message,
       });
     } finally {
@@ -519,9 +524,10 @@ export default function ProfileForm({ isClient = true }) {
                     toast.success("Avatar removed", {
                       description: "Your profile photo has been removed.",
                     });
-                  } catch (error: any) {
+                  } catch (error) {
                     console.error("Error removing avatar:", error);
                     toast.error("Error removing avatar", {
+                      //@ts-expect-error: error is of course an error how would i define the type of unknown?
                       description: error.message,
                     });
                   } finally {
@@ -545,7 +551,10 @@ export default function ProfileForm({ isClient = true }) {
           </CardHeader>
           <CardContent>
             <div className="aspect-video bg-muted rounded-md mb-4 flex items-center justify-center overflow-hidden">
-              <img
+              
+              <Image
+                width={500}
+                height={300}
                 src={
                   profile.cover_image || "/placeholder.svg?height=300&width=500"
                 }

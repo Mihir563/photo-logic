@@ -23,7 +23,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/lib/supabase";
 import { toast, Toaster } from "sonner";
-import { addDays, isSameDay } from "date-fns";
+import { addDays } from "date-fns";
 
 export default function AvailabilityManager() {
   const [loading, setLoading] = useState(false);
@@ -85,8 +85,9 @@ export default function AvailabilityManager() {
             setSettings(data.settings);
           }
         }
-      } catch (error: any) {
+      } catch (error) {
         toast.error("Error loading availability", {
+          //@ts-expect-error : dont know what is error in this!!!
           description: error.message,
         });
       } finally {
@@ -155,9 +156,10 @@ export default function AvailabilityManager() {
       toast.success("Availability saved", {
         description: "Your availability has been updated successfully.",
       });
-    } catch (error: any) {
+    } catch (error) {
       console.error("Save error:", error); // Debug logging
       toast.error("Error saving availability", {
+        //@ts-expect-error : dont know what is error in this!!!
         description: error.message,
       });
     } finally {

@@ -22,6 +22,9 @@ import {
 import PortfolioGallery from "@/components/portfolio-gallery";
 import InquiryForm from "@/components/inquiry-form";
 import { supabase } from "@/lib/supabase";
+import RequestBookingButton from "@/components/RequestBooking";
+import Image from "next/image";
+import CosmicLoader from "@/app/loading";
 
 interface Photographer {
   id: string;
@@ -67,11 +70,13 @@ interface Availability {
 export default function PhotographerProfile() {
   const params = useParams();
   const [photographer, setPhotographer] = useState<Photographer | null>(null);
-  const [pricingPackages, setPricingPackages] = useState<any[] | null>(null);
+  const [pricingPackages, setPricingPackages] = useState<
+    Array<{ id: string; name: string; price: number; duration?: number; included?: string[] }>
+  >([]);
   const [availability, setAvailability] = useState<Availability | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [clientId, setClientId] = useState<Number | any>(null);
+  const [clientId, setClientId] = useState<  string[] | undefined >();
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -79,7 +84,7 @@ export default function PhotographerProfile() {
       if (error) {
         console.error("Error fetching user:", error);
       } else {
-        setClientId(data?.user?.id || null);
+        setClientId(data?.user?.id ? [data.user.id] : undefined);
       }
     };
     fetchUser();
@@ -118,7 +123,8 @@ export default function PhotographerProfile() {
         const transformedData = {
           ...data,
           specialties: data.specialties,
-          portfolio: data.portfolio.map((p: any) => ({
+          //@ts-expect-error : dont know what is error in this!!!
+          portfolio: data.portfolio.map((p) => ({
             title: p.title,
             id: p.id,
             imageUrl: p.image,
@@ -180,7 +186,6 @@ export default function PhotographerProfile() {
           return;
         }
 
-
         if (data && data.length > 0) {
           setAvailability(data[0]); // Use the first item since it contains all the data
         }
@@ -209,18 +214,12 @@ export default function PhotographerProfile() {
     return `${formattedHour}:${minutes} ${period}`;
   };
 
-  const isAvailableDate = (date: Date) => {
-    if (!availability?.available_dates) return false;
-
-    const dateString = date.toISOString().split("T")[0]; // Format as YYYY-MM-DD
-    return availability.available_dates.includes(dateString);
-  };
 
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-8 flex justify-center items-center min-h-[60vh]">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <CosmicLoader/>
           <p className="mt-4 text-muted-foreground">
             Loading photographer profile...
           </p>
@@ -250,7 +249,9 @@ export default function PhotographerProfile() {
       {/* Profile Header */}
       <div className="relative mb-8">
         <div className="h-64 w-full overflow-hidden rounded-lg">
-          <img
+          <Image
+            width={1000}
+            height={400}
             src={photographer?.cover_image || "/placeholder.svg"}
             alt={`${photographer?.name}'s cover`}
             className="w-full h-full object-cover"
@@ -310,12 +311,11 @@ export default function PhotographerProfile() {
 
             <p className="mt-4 text-muted-foreground">{photographer?.bio}</p>
 
-            <div className="flex gap-3 mt-4">
+            <div className="flex flex-wrap gap-3 mt-4">
               {photographer?.instagram && (
                 <Button
                   variant="ghost"
-                  size="icon"
-                  className="rounded-full"
+                  className="rounded-full px-4 py-2 text-white bg-gradient-to-r from-pink-500 via-red-500 to-yellow-500 hover:opacity-90 transition"
                   onClick={() =>
                     window.open(
                       `https://instagram.com/${photographer.instagram}`,
@@ -323,14 +323,17 @@ export default function PhotographerProfile() {
                     )
                   }
                 >
-                  <Instagram className="h-4 w-4" />
+                  <Instagram className="h-4 w-4 " />
+                  <span className="whitespace-nowrap">
+                    {photographer.instagram}
+                  </span>
                 </Button>
               )}
+
               {photographer?.facebook && (
                 <Button
                   variant="ghost"
-                  size="icon"
-                  className="rounded-full"
+                  className="rounded-full px-4 py-2 text-blue-600 border border-blue-600 hover:bg-blue-50 transition"
                   onClick={() =>
                     window.open(
                       `https://facebook.com/${photographer.facebook}`,
@@ -339,13 +342,16 @@ export default function PhotographerProfile() {
                   }
                 >
                   <Facebook className="h-4 w-4" />
+                  <span className="whitespace-nowrap">
+                    {photographer.facebook}
+                  </span>
                 </Button>
               )}
+
               {photographer?.twitter && (
                 <Button
                   variant="ghost"
-                  size="icon"
-                  className="rounded-full"
+                  className="rounded-full px-4 py-2 text-sky-500 border border-sky-500 hover:bg-sky-50 transition"
                   onClick={() =>
                     window.open(
                       `https://twitter.com/${photographer.twitter}`,
@@ -353,7 +359,10 @@ export default function PhotographerProfile() {
                     )
                   }
                 >
-                  <Twitter className="h-4 w-4" />
+                  <Twitter className="h-4 w-4 mr-2" />
+                  <span className="whitespace-nowrap">
+                    {photographer.twitter}
+                  </span>
                 </Button>
               )}
             </div>
@@ -371,25 +380,23 @@ export default function PhotographerProfile() {
         </TabsList>
 
         <TabsContent value="portfolio" className="mt-6">
-          {/* @ts-ignore */}
+          {/* @ts-expect-error : dont know what is error in this!!! */}
           <PortfolioGallery portfolio={photographer?.portfolio} />
         </TabsContent>
 
         <TabsContent value="pricing">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {pricingPackages?.map((pkg: any, index: number) => (
+            {pricingPackages?.map((pkg) => (
               <Card key={pkg.id}>
                 <CardContent className="pt-6">
                   <h3 className="text-xl font-bold mb-2">{pkg.name}</h3>
-                  <div className="text-3xl font-bold mb-4">
-                    ₹{pkg.price}{" "}
-                    <span className="text-sm font-normal text-muted-foreground">
-                      {pkg.duration ? "/ hour" : "/ package"}
-                    </span>
+                  <div className="text-2xl font-semibold mb-4">
+                    ₹{pkg.price}
+                    {pkg.duration !== undefined ? "/ hour" : "/ package"}
                   </div>
                   <ul className="space-y-2 mb-6">
                     {pkg.included && pkg.included.length > 0 ? (
-                      pkg.included.map((item: any, i: number) => (
+                      pkg.included.map((item, i: number) => (
                         <li key={i} className="flex items-center">
                           <span className="mr-2">✓</span> {item}
                         </li>
@@ -410,7 +417,7 @@ export default function PhotographerProfile() {
                             : "Commercial"}{" "}
                           use license
                         </li>
-                        {pkg.duration > 1 && (
+                        {pkg.duration !== undefined && pkg.duration > 1 && (
                           <li className="flex items-center">
                             <span className="mr-2">✓</span>{" "}
                             {pkg.duration > 2
@@ -534,7 +541,13 @@ export default function PhotographerProfile() {
                         </>
                       )}
                     </div>
-                    <Button className="w-full mt-4">Request Booking</Button>
+                    <RequestBookingButton
+                      clientId={clientId?.[0] || ""}
+                      photographerId={photographer?.id}
+                      photographerName={photographer?.name}
+                      availableDates={availability?.available_dates || []}
+                      workingHours={availability?.working_hours ?? {}}
+                    />
                   </CardContent>
                 </Card>
               </div>
@@ -544,7 +557,7 @@ export default function PhotographerProfile() {
 
         <TabsContent value="inquire">
           <InquiryForm
-            clientId={clientId}
+            clientId={clientId?.[0] || ""}
             photographerId={photographer?.id}
             photographerName={photographer?.name}
           />

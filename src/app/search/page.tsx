@@ -26,9 +26,9 @@ import {
   SheetClose,
 } from "@/components/ui/sheet";
 import PhotographerCard from "@/components/photographer-card";
-import { supabase } from "@/lib/supabase";
 import { toast, Toaster } from "sonner";
 import type { Photographer } from "@/lib/types";
+import CosmicLoader from "../loading";
 
 export default function SearchPage() {
   const [loading, setLoading] = useState(false);
@@ -36,7 +36,7 @@ export default function SearchPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [location, setLocation] = useState("");
   const [category, setCategory] = useState("");
-  const [priceRange, setPriceRange] = useState([0, 10000]);
+  const [priceRange, setPriceRange] = useState([0, 100000]);
   const [specialties, setSpecialties] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState("rating");
   const [activeFilters, setActiveFilters] = useState(0);
@@ -47,78 +47,47 @@ export default function SearchPage() {
       try {
         setLoading(true);
 
-        let query = supabase
-          .from("profiles")
-          .select(
-            `
-            id,
-            name,
-            avatar_url,
-            cover_image,
-            location,
-            bio,  
-            specialties,
-            hourly_rate,
-            rating
-          `
-          )
-          .eq("account_type", "photographer");
+        // Build query parameters
+        const params = new URLSearchParams();
+        if (searchQuery) params.append("query", searchQuery);
+        if (location) params.append("location", location);
+        if (category) params.append("category", category);
+        params.append("minPrice", priceRange[0].toString());
+        params.append("maxPrice", priceRange[1].toString());
+        if (specialties.length > 0)
+          params.append("specialties", specialties.join(","));
+        params.append("sortBy", sortBy);
 
-        // Apply filters
-        if (searchQuery) {
-          query = query.or(
-            `name.ilike.%${searchQuery}%,bio.ilike.%${searchQuery}%`
-          );
+        // Call the API endpoint
+        const response = await fetch(`/api/search?${params.toString()}`);
+
+        if (!response.ok) {
+          throw new Error(`Error: ${response.status}`);
         }
 
-        if (location) {
-          query = query.ilike("location", `%${location}%`);
-        }
+        const data = await response.json();
 
-        if (specialties.length > 0) {
-          query = query.contains("specialties", specialties);
-        }
+        if (data.photographers) {
+          // Format the data to match our Photographer type
 
-        if (priceRange[0] > 0 || priceRange[1] < 500) {
-          query = query
-            .gte("hourly_rate", priceRange[0])
-            .lte("hourly_rate", priceRange[1]);
-        }
-
-        // Apply sorting
-        if (sortBy === "rating") {
-          query = query.order("rating", { ascending: false });
-        } else if (sortBy === "price_low") {
-          query = query.order("hourly_rate", { ascending: true });
-        } else if (sortBy === "price_high") {
-          query = query.order("hourly_rate", { ascending: false });
-        } else if (sortBy === "newest") {
-          query = query.order("created_at", { ascending: false });
-        }
-
-        const { data, error } = await query;
-
-        if (error) throw error;
-
-        if (data) {
-          // Format the data
-          const formattedData = data.map((profile) => ({
+          const formattedData = data.photographers.map((profile:Photographer) => ({
             id: profile.id,
             name: profile.name,
-            avatar: profile.avatar_url,
-            coverImage: profile.cover_image,
+            avatar_url: profile.avatar_url,
+            cover_image: profile.coverImage,
             location: profile.location,
             rating: profile.rating || 0,
             specialties: profile.specialties || [],
-            price: profile.hourly_rate || 0,
+            hourly_rate: profile.price || 0,
             bio: profile.bio || "",
             portfolio: [],
           }));
-          //@ts-ignore
+
           setPhotographers(formattedData);
         }
-      } catch (error: any) {
+      } catch (error) {
         toast.error("Error loading photographers", {
+          //@ts-expect-error : dont know what is error in this!!!
           description: error.message,
         });
       } finally {
@@ -133,10 +102,10 @@ export default function SearchPage() {
     if (searchQuery) count++;
     if (location) count++;
     if (category) count++;
-    if (priceRange[0] > 0 || priceRange[1] < 500) count++;
+    if (priceRange[0] > 0 || priceRange[1] < 100000) count++;
     if (specialties.length > 0) count++;
     setActiveFilters(count);
-  }, [searchQuery, location, category, priceRange, specialties, sortBy, toast]);
+  }, [searchQuery, location, category, priceRange, specialties, sortBy]);
 
   const handleSpecialtyChange = (specialty: string, checked: boolean) => {
     if (checked) {
@@ -155,7 +124,7 @@ export default function SearchPage() {
     setSearchQuery("");
     setLocation("");
     setCategory("");
-    setPriceRange([0, 500]);
+    setPriceRange([0, 100000]);
     setSpecialties([]);
     setSortBy("rating");
   };
@@ -212,12 +181,7 @@ export default function SearchPage() {
             </div>
 
             <div className="flex gap-2">
-              <Select
-                value={category}
-                onValueChange={setCategory}
-                //@ts-ignore
-                className="flex-1"
-              >
+              <Select value={category} onValueChange={setCategory}>
                 <SelectTrigger className="h-12 min-w-[120px]">
                   <SelectValue placeholder="Category" />
                 </SelectTrigger>
@@ -272,8 +236,8 @@ export default function SearchPage() {
                 <Slider
                   value={priceRange}
                   min={0}
-                  max={500}
-                  step={10}
+                  max={100000}
+                  step={1000}
                   onValueChange={setPriceRange}
                 />
                 <div className="flex items-center justify-between">
@@ -320,7 +284,7 @@ export default function SearchPage() {
         </Sheet>
 
         <Select value={sortBy} onValueChange={setSortBy}>
-          <SelectTrigger className="w-[150px]" size="sm">
+          <SelectTrigger className="w-[150px]">
             <SelectValue placeholder="Sort by" />
           </SelectTrigger>
           <SelectContent>
@@ -352,8 +316,8 @@ export default function SearchPage() {
             <Slider
               value={priceRange}
               min={0}
-              max={500}
-              step={10}
+              max={100000}
+              step={1000}
               onValueChange={setPriceRange}
             />
             <div className="flex items-center justify-between">
@@ -408,7 +372,7 @@ export default function SearchPage() {
           <div className="flex justify-between items-center mb-4 sm:mb-6">
             <h2 className="text-lg sm:text-2xl font-bold">
               {loading
-                ? "Searching..."
+                ? <CosmicLoader/>
                 : `${photographers.length} Photographers Found`}
             </h2>
           </div>

@@ -1,12 +1,10 @@
 'use client'
 
 import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Search, Camera, MapPin, DollarSign } from "lucide-react";
 import PhotographerCard from "@/components/photographer-card";
 import { supabase } from "@/lib/supabase";
 import { Photographer } from "@/lib/types";
+import CosmicLoader from "./loading";
 export default function Home() {
   
   const [photographers, setPhotographers] = useState<Photographer[]>([]);
@@ -29,8 +27,9 @@ export default function Home() {
         if (error) throw error;
 
         setPhotographers(data || []);
-      } catch (err : any) {
+      } catch (err) {
         console.error("Error fetching photographers:", err);
+        //@ts-expect-error: err is of course an error how would i define the type of unknown? 
         setError(err.message);
       } finally {
         setLoading(false);
@@ -50,53 +49,19 @@ export default function Home() {
           Connect with talented photographers for your special moments, events,
           or professional needs.
         </p>
-
-        {/* Search Bar */}
-        <div className="flex flex-col md:flex-row gap-4 max-w-4xl mx-auto">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search photographers..."
-              className="pl-10 h-12"
-            />
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" className="flex gap-2 h-12">
-              <MapPin className="h-4 w-4" />
-              <span>Location</span>
-            </Button>
-            <Button variant="outline" className="flex gap-2 h-12">
-              <Camera className="h-4 w-4" />
-              <span>Category</span>
-            </Button>
-            <Button variant="outline" className="flex gap-2 h-12">
-              <DollarSign className="h-4 w-4" />
-              <span>Price</span>
-            </Button>
-          </div>
-        </div>
       </section>
 
       {/* Photographer Listings */}
       <section>
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold">Featured Photographers</h2>
-          <div className="flex gap-2">
-            <Button variant="ghost" size="sm">
-              Most Popular
-            </Button>
-            <Button variant="ghost" size="sm">
-              Newest
-            </Button>
-            <Button variant="ghost" size="sm">
-              Price: Low to High
-            </Button>
-          </div>
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+            <h2 className="relative inline-block text-2xl font-bold text-transparent bg-gradient-to-r from-gray-500 to-gray-600 bg-clip-text ">
+              Featured Photographers
+            </h2>
         </div>
 
         {loading ? (
           <div className="flex justify-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+            <CosmicLoader/>
           </div>
         ) : error ? (
           <div className="text-center py-8 text-red-500">

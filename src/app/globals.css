@@ -144,3 +144,107 @@
   background: #000000;
   /* Change color on hover */
 }
+@keyframes gradient-shimmer {
+  0% {
+    background-position: 0% 50%;
+  }
+
+  100% {
+    background-position: 100% 50%;
+  }
+}
+
+.animate-gradient-shimmer {
+  background-size: 200% 200%;
+  animation: gradient-shimmer 3s ease infinite;
+}@keyframes metallic-shimmer {
+  0% {
+    background-position: 0% 50%;
+  }
+
+  100% {
+    background-position: 100% 50%;
+  }
+}
+
+.animate-metallic {
+  background-size: 200% 200%;
+  animation: metallic-shimmer 4s linear infinite;
+}
+/* Add this to your global.css file */
+/* Active tab styling */
+[data-active="true"] {
+  color: hsl(var(--foreground));
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  font-weight: 500;
+}
+
+/* Make tabs look more clickable */
+.tabs-trigger {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tabs-trigger:hover {
+  background-color: hsl(var(--muted) / 0.8);
+}/* === Drop Shadows === */
+.drop-shadow-neon {
+  filter: drop-shadow(0 0 10px rgba(127, 0, 255, 0.8)) drop-shadow(0 0 20px rgba(0, 255, 255, 0.5));
+}
+
+/* === Background Gradients === */
+.bg-galactic-radial {
+  background-image: radial-gradient(ellipse at center, #a855f7, #6366f1, #ec4899);
+}
+
+/* === Animations === */
+@keyframes galaxy-pulse {
+
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.7;
+    transform: scale(1.05);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 0% 50%;
+  }
+
+  100% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes spin-reverse {
+  0% {
+    transform: rotate(360deg);
+  }
+
+  100% {
+    transform: rotate(0deg);
+  }
+}
+
+/* === Animation Utilities === */
+.animate-galaxy-pulse {
+  animation: galaxy-pulse 2.5s ease-in-out infinite;
+}
+
+.animate-gradient-shimmer {
+  animation: shimmer 3s linear infinite;
+}
+
+.animate-spin-slow {
+  animation: spin 2s linear infinite;
+}
+
+.animate-spin-reverse {
+  animation: spin-reverse 3s linear infinite;
+}

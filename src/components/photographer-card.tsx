@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { MapPin, Star, Camera } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 
 interface PhotographerCardProps {
   photographer: Photographer;
@@ -21,17 +22,20 @@ export default function PhotographerCard({
     location,
     rating,
     specialties,
-    price,
-    coverImage,
+    hourly_rate,
+    cover_image,
     bio,
   } = photographer;
 
-  console.log(photographer)
+  console.log("PhotographerCard", { photographer });
+
   return (
     <Card className="overflow-hidden transition-all hover:shadow-md">
       <div className="relative h-48 overflow-hidden">
-        <img
-          src={coverImage || "/placeholder.svg"}
+        <Image
+          height={192}
+          width={192}
+          src={cover_image || "/placeholder.svg"}
           alt={`${name}'s work`}
           className="w-full h-full object-cover"
         />
@@ -75,7 +79,7 @@ export default function PhotographerCard({
                   {specialty}
                 </Badge>
               ))
-            : specialties?.split(",").map((specialty: any, index: number) => (
+            : specialties?.split(",").map((specialty, index: number) => (
                 <Badge
                   key={index}
                   variant="secondary"
@@ -89,7 +93,7 @@ export default function PhotographerCard({
 
         <div className="flex items-center justify-between">
           <div>
-            <span className="text-lg font-bold">₹{price || 0}</span>
+            <span className="text-lg font-bold">₹{hourly_rate || 0}</span>
             <span className="text-muted-foreground text-sm"> / hour</span>
           </div>
         </div>

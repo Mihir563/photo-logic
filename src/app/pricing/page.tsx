@@ -9,7 +9,6 @@ import {
   Calendar,
   FileText,
   Users,
-  Award,
   HeadphonesIcon,
   CreditCard,
 } from "lucide-react";
@@ -30,8 +29,8 @@ const PricingPage: React.FC = () => {
   const pricingDetails = {
     starter: {
       name: "Starter",
-      monthlyPrice: 12,
-      yearlyPrice: 120,
+      monthlyPrice: 120,
+      yearlyPrice: 1000,
       description: "Perfect for beginners building their portfolio",
       ctaText: "Get started for free",
       color: "bg-gradient-to-br from-blue-50 to-indigo-100",
@@ -39,8 +38,8 @@ const PricingPage: React.FC = () => {
     },
     pro: {
       name: "Pro",
-      monthlyPrice: 29,
-      yearlyPrice: 290,
+      monthlyPrice: 250,
+      yearlyPrice: 2500,
       description: "For growing photographers ready to scale",
       ctaText: "Book your next client in minutes",
       color: "bg-gradient-to-br from-blue-100 to-indigo-200",
@@ -48,8 +47,8 @@ const PricingPage: React.FC = () => {
     },
     business: {
       name: "Business",
-      monthlyPrice: 49,
-      yearlyPrice: 490,
+      monthlyPrice: 500,
+      yearlyPrice: 5000 ,
       description: "For professional studios and teams",
       ctaText: "Turn your passion into profit",
       color: "bg-gradient-to-br from-indigo-100 to-purple-200",

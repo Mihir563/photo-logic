@@ -24,7 +24,7 @@ export interface PortfolioItem  {
   imageUrl: string;
   created_at: string;
   file?: File;
-  preview?: string | any;
+  preview?: string;
 };
 
 export interface Booking {

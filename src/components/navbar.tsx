@@ -26,11 +26,11 @@ import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { toast, Toaster } from "sonner";
+import NotificationCenter from "./notification";
 
 export default function Navbar() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
   const [user, setUser] = useState<{
     email: string;
     avatar_url: string;
@@ -52,44 +52,6 @@ export default function Navbar() {
   };
 
 
-  useEffect(() => {
-    const getUserData = async () => {
-      // Step 1: Get Authenticated User
-      const { data: authData, error: authError } =
-        await supabase.auth.getUser();
-
-      if (authError) {
-        console.error("Error fetching user data:", authError.message);
-        return;
-      }
-
-      const user = authData?.user;
-      if (!user) {
-        router.push('/auth')
-      } else {
-        setIsLoggedIn(true);
-      }
-
-      // Step 2: Fetch User Profile from `profiles` Table
-      const { data: profileData, error: profileError } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", user.id) // Match the `profiles` table ID with the Auth user ID
-        .single();
-
-      if (profileError) {
-        console.error("Error fetching profile data:", profileError.message);
-        return;
-      }
-
-      // Step 3: Store in State
-      setIsLoggedIn(true);
-      setUser(profileData);
-      setName(profileData.name);
-    };
-
-    getUserData();
-  }, [handleAuth, handleLogout, router]);
 useEffect(() => {
   const {
     data: { subscription },
@@ -105,14 +67,12 @@ useEffect(() => {
       if (!profileError) {
         setUser(profileData);
         setName(profileData.name);
-        setEmail(profileData.email);
         setIsLoggedIn(true);
       }
     } else {
       // User logged out
       setUser(null);
       setName("");
-      setEmail("");
       setIsLoggedIn(false);
     }
   });
@@ -167,9 +127,9 @@ useEffect(() => {
                   <ul className="grid gap-3 p-4 md:w-[400px] lg:w-[500px] lg:grid-cols-2">
                     <li className="row-span-3">
                       <NavigationMenuLink asChild>
-                        <a
+                        <Link
+                        href={"/"}
                           className="flex h-full w-full select-none flex-col justify-end rounded-md bg-gradient-to-b from-muted/50 to-muted p-6 no-underline outline-none focus:shadow-md"
-                          href="/"
                         >
                           <div className="mb-2 mt-4 text-lg font-medium">
                             Featured Photographers
@@ -178,7 +138,7 @@ useEffect(() => {
                             Discover our top-rated photographers for your next
                             project
                           </p>
-                        </a>
+                        </Link>
                       </NavigationMenuLink>
                     </li>
                     <li>
@@ -274,6 +234,9 @@ useEffect(() => {
               <Search className="h-5 w-5" />
             </Button>
           </div>
+          <div className=" md:flex">
+           <NotificationCenter/>
+          </div>
 
           {isLoggedIn ? (
             <DropdownMenu>
@@ -356,29 +319,50 @@ useEffect(() => {
                 </Link>
 
                 <div className="grid gap-2">
-                  <Link href="#discover" className="flex py-2 px-2">
+                  <Link
+                    href="#discover"
+                    className="flex py-2 px-2 hover:bg-gray-300 rounded-xl"
+                  >
                     Discover
                   </Link>
-                  <Link href="/how-it-works" className="flex py-2 px-2">
+                  <Link
+                    href="/how-it-works"
+                    className="flex py-2 px-2 hover:bg-gray-300 rounded-xl"
+                  >
                     How It Works
                   </Link>
-                  <Link href="/pricing" className="flex py-2 px-2">
+                  <Link
+                    href="/pricing"
+                    className="flex py-2 px-2 hover:bg-gray-300 rounded-xl"
+                  >
                     Pricing
                   </Link>
                 </div>
 
                 {isLoggedIn ? (
                   <div className="grid gap-2 mt-4">
-                    <Link href="/dashboard" className="flex py-2 px-2">
+                    <Link
+                      href="/dashboard"
+                      className="flex py-2 px-2 hover:bg-gray-300 rounded-xl"
+                    >
                       Dashboard
                     </Link>
-                    <Link href="/dashboard/profile" className="flex py-2 px-2">
+                    <Link
+                      href="/dashboard/profile"
+                      className="flex py-2 px-2 hover:bg-gray-300 rounded-xl"
+                    >
                       Profile
                     </Link>
-                    <Link href="/dashboard/bookings" className="flex py-2 px-2">
+                    <Link
+                      href="/dashboard/bookings"
+                      className="flex py-2 px-2 hover:bg-gray-300 rounded-xl"
+                    >
                       Bookings
                     </Link>
-                    <Link href="/dashboard/messages" className="flex py-2 px-2">
+                    <Link
+                      href="/dashboard/messages"
+                      className="flex py-2 px-2 hover:bg-gray-300 rounded-xl"
+                    >
                       Messages
                     </Link>
                     <Button
@@ -408,11 +392,11 @@ useEffect(() => {
                   </div>
                 )}
               </div>
+              <Toaster/>
             </SheetContent>
           </Sheet>
         </div>
       </div>
-      <Toaster/>
     </header>
   );
 }
