@@ -2,7 +2,7 @@
 
 import type React from "react";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -82,7 +82,8 @@ export default function AuthForm() {
 
       // Step 3: Redirect after successful signup
       router.push("/dashboard");
-    } catch (error: any) {
+    } catch (error) {
+      //@ts-expect-error : dont know what is error in this!!!
       setError(error.message || "An error occurred during sign-up");
     } finally {
       setLoading(false);
@@ -96,14 +97,15 @@ export default function AuthForm() {
     setError(null);
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) throw error;
       router.push("/dashboard");
-    } catch (error: any) {
+    } catch (error) {
+      //@ts-expect-error : dont know what is error in this!!!
       setError(error.message || "An error occurred during sign in");
     } finally {
       setLoading(false);
@@ -128,8 +130,9 @@ export default function AuthForm() {
         setResetSuccess(false);
         setResetEmail("");
       }, 3000);
-    } catch (error: any) {
+    } catch (error) {
       setError(
+        //@ts-expect-error : dont know what is error in this!!!
         error.message || "An error occurred while requesting password reset"
       );
     } finally {
@@ -183,6 +186,7 @@ export default function AuthForm() {
             );
           }
         } catch (error) {
+          setError(`Failed to fetch location data,${error}`)
           // Fallback to coordinates if API call fails
           setLocation(
             `${position.coords.latitude.toFixed(

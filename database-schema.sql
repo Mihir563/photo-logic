@@ -135,3 +135,13 @@ AFTER INSERT OR UPDATE ON reviews
 FOR EACH ROW
 EXECUTE FUNCTION update_photographer_rating();
 
+-- Run this in your Supabase SQL editor
+CREATE TABLE IF NOT EXISTS public.chat_status (
+  user_id UUID REFERENCES auth.users(id) PRIMARY KEY,
+  status TEXT NOT NULL DEFAULT 'offline',
+  typing_to UUID,
+  last_active TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Add read_at column to messages if not exists
+ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS read_at TIMESTAMP WITH TIME ZONE;

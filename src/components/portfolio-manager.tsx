@@ -29,17 +29,18 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Plus, Trash, ImageIcon } from "lucide-react";
+import { Plus, Trash, ImageIcon, PencilIcon } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import { toast } from "sonner";
+import { toast, Toaster } from "sonner";
 import type { PortfolioItem } from "@/lib/types";
-
-
+import Image from "next/image";
 
 export default function PortfolioManager() {
   const [loading, setLoading] = useState(false);
   const [portfolio, setPortfolio] = useState<PortfolioItem[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [currentItemId, setCurrentItemId] = useState<string | null>(null);
   const [newItem, setNewItem] = useState<Partial<PortfolioItem>>({
     title: "",
     category: "",
@@ -72,8 +73,9 @@ export default function PortfolioManager() {
         if (data) {
           setPortfolio(data);
         }
-      } catch (error: any) {
+      } catch (error) {
         toast.error("Error loading portfolio", {
+          //@ts-expect-error : dont know what is error in this!!!
           description: error.message,
         });
       } finally {
@@ -115,18 +117,44 @@ export default function PortfolioManager() {
         }
       };
       reader.readAsDataURL(file);
-    } catch (error: any) {
+    } catch (error) {
       toast.error("Error selecting image", {
+        //@ts-expect-error : dont know what is error in this!!!
         description: error.message,
       });
     }
+  };
+
+  const handleEditItem = (item: PortfolioItem) => {
+    setEditMode(true);
+    setCurrentItemId(item.id);
+    setNewItem({
+      title: item?.title,
+      category: item?.category,
+      description: item?.description,
+       //@ts-expect-error : dont know what is error in this!!!
+      preview: item?.image, 
+    });
+    setDialogOpen(true);
+  };
+
+  const resetForm = () => {
+    setNewItem({
+      title: "",
+      category: "",
+      description: "",
+      file: undefined,
+      preview: "",
+    });
+    setEditMode(false);
+    setCurrentItemId(null);
   };
 
   const addPortfolioItem = async () => {
     try {
       setLoading(true);
 
-      if (!newItem.title || !newItem.category || !newItem.file) {
+      if (!newItem.title || !newItem.category || (!editMode && !newItem.file)) {
         throw new Error(
           "Please fill in all required fields and upload an image"
         );
@@ -138,67 +166,101 @@ export default function PortfolioManager() {
       if (userError || !userData?.user) throw new Error("User not found");
       const user = userData.user;
 
-      // Upload image to Supabase Storage
-      // @ts-ignore
-      const file = newItem.file as File;
-      const fileExt = file.name.split(".").pop();
-      const uniqueName = `portfolio-${user.id}-${Date.now()}.${fileExt}`;
+      let publicUrl = "";
 
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from("portfolio") // Make sure this is your correct bucket name
-        .upload(uniqueName, file);
+      // Only upload a new image if there's a file
+      if (newItem.file) {
+        // Upload image to Supabase Storage
+        const file = newItem.file as File;
+        const fileExt = file.name.split(".").pop();
+        const uniqueName = `portfolio-${user.id}-${Date.now()}.${fileExt}`;
 
-      if (uploadError)
-        throw new Error(`Storage Upload Error: ${uploadError.message}`);
+        const { error: uploadError } = await supabase.storage
+          .from("portfolio") // Make sure this is your correct bucket name
+          .upload(uniqueName, file);
 
-      // Get Public URL - This is the fix
-      const publicUrl = supabase.storage
-        .from("portfolio")
-        .getPublicUrl(uniqueName).data.publicUrl;
+        if (uploadError)
+          throw new Error(`Storage Upload Error: ${uploadError.message}`);
 
-      console.log("Public URL:", publicUrl);
+        // Get Public URL
+        publicUrl = supabase.storage.from("portfolio").getPublicUrl(uniqueName)
+          .data.publicUrl;
+      }
 
-      // Create portfolio item in Supabase Database
-      const { data, error } = await supabase
-        .from("portfolio")
-        .insert([
-          {
-            user_id: user.id,
-            title: newItem.title,
-            category: newItem.category,
-            description: newItem.description,
-            image: publicUrl, // Store Supabase Storage URL
-            created_at: new Date(),
-          },
-        ])
-        .select();
+      if (editMode && currentItemId) {
+        // Update existing portfolio item
+        const updateData = {
+          title: newItem.title,
+          category: newItem.category,
+          description: newItem.description,
+          updated_at: new Date(),
+        };
 
-      console.log("Database response:", data);
+        // Only update image if a new one was uploaded
+        if (publicUrl) {
+          //@ts-expect-error : dont know what is error in this!!!
+          updateData.image = publicUrl;
+        }
 
-      if (error) throw new Error(`Database Insert Error: ${error.message}`);
+        const { data, error } = await supabase
+          .from("portfolio")
+          .update(updateData)
+          .eq("id", currentItemId)
+          .select();
 
-      // Add new item to state
-      if (data) {
-        setPortfolio((prev) => [data[0], ...prev]);
+        if (error) throw new Error(`Database Update Error: ${error.message}`);
+
+        // Update the item in state
+        if (data) {
+          setPortfolio((prev) =>
+            prev.map((item) => (item.id === currentItemId ? data[0] : item))
+          );
+        }
+
+        toast.success("Portfolio item updated", {
+          description: "Your portfolio item has been updated successfully.",
+        });
+      } else {
+        // Create new portfolio item
+        const { data, error } = await supabase
+          .from("portfolio")
+          .insert([
+            {
+              user_id: user.id,
+              title: newItem.title,
+              category: newItem.category,
+              description: newItem.description,
+              image: publicUrl, // Store Supabase Storage URL
+              created_at: new Date(),
+            },
+          ])
+          .select();
+
+        if (error) throw new Error(`Database Insert Error: ${error.message}`);
+
+        // Add new item to state
+        if (data) {
+          setPortfolio((prev) => [data[0], ...prev]);
+        }
+
+        toast.success("Portfolio item added", {
+          description: "Your portfolio item has been added successfully.",
+        });
       }
 
       // Reset form and close dialog
-      setNewItem({
-        title: "",
-        category: "",
-        description: "",
-        file: undefined,
-        preview: "",
-      });
+      resetForm();
       setDialogOpen(false);
-
-      toast.success("Portfolio item added", {
-        description: "Your portfolio item has been added successfully.",
-      });
-    } catch (error: any) {
-      toast.error("Error adding portfolio item", {
-        description: error.message,
-      });
+    } catch (error) {
+      toast.error(
+        editMode
+          ? "Error updating portfolio item"
+          : "Error adding portfolio item",
+        {
+          //@ts-expect-error : dont know what is error in this!!!
+          description: error.message,
+        }
+      );
     } finally {
       setLoading(false);
     }
@@ -218,8 +280,10 @@ export default function PortfolioManager() {
       if (error) throw error;
 
       // Delete image from storage if needed
+       //@ts-expect-error : dont know what is error in this!!!
       if (itemToDelete.image) {
         // Extract file name from URL
+        //@ts-expect-error : dont know what is error in this!!!
         const fileName = itemToDelete.image.split("/").pop();
         if (fileName) {
           await supabase.storage.from("portfolio").remove([fileName]);
@@ -232,13 +296,20 @@ export default function PortfolioManager() {
       toast.success("Portfolio item deleted", {
         description: "Your portfolio item has been deleted successfully.",
       });
-    } catch (error: any) {
+    } catch (error) {
       toast.error("Error deleting portfolio item", {
+        //@ts-expect-error : dont know what is error in this!!!
         description: error.message,
       });
     } finally {
       setLoading(false);
     }
+  };
+
+  // Open dialog for adding new item
+  const openAddDialog = () => {
+    resetForm();
+    setDialogOpen(true);
   };
 
   return (
@@ -250,29 +321,51 @@ export default function PortfolioManager() {
             Showcase your best work to potential clients
           </CardDescription>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <Dialog
+          open={dialogOpen}
+          onOpenChange={(open) => {
+            setDialogOpen(open);
+            if (!open) resetForm();
+          }}
+        >
           <DialogTrigger asChild>
-            <Button>
+            <Button onClick={openAddDialog}>
               <Plus className="mr-2 h-4 w-4" />
               Add Portfolio Item
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Add Portfolio Item</DialogTitle>
+              <DialogTitle>
+                {editMode ? "Edit Portfolio Item" : "Add Portfolio Item"}
+              </DialogTitle>
               <DialogDescription>
-                Upload a photo and add details to showcase your work.
+                {editMode
+                  ? "Update the details of your portfolio item."
+                  : "Upload a photo and add details to showcase your work."}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="flex justify-center mb-4">
                 {newItem.preview ? (
                   <div className="relative w-full max-w-md aspect-square rounded-md overflow-hidden">
-                    <img
+                    <Image
                       src={newItem.preview || "/file.svg"}
                       alt="Preview"
                       className="w-full h-full object-cover"
                     />
+                    {editMode && (
+                      <div
+                        className="absolute inset-0 bg-black/50 opacity-0 hover:opacity-100 flex items-center justify-center transition-opacity cursor-pointer"
+                        onClick={() =>
+                          document.getElementById("file-upload")?.click()
+                        }
+                      >
+                        <p className="text-white text-sm font-medium">
+                          Change Image
+                        </p>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <label className="flex flex-col items-center justify-center w-full max-w-md aspect-square rounded-md border-2 border-dashed border-muted-foreground/25 cursor-pointer hover:bg-muted/50 transition-colors">
@@ -287,6 +380,7 @@ export default function PortfolioManager() {
                       </p>
                     </div>
                     <input
+                      id="file-upload"
                       type="file"
                       className="hidden"
                       accept="image/*"
@@ -344,15 +438,28 @@ export default function PortfolioManager() {
                   onChange={handleInputChange}
                   placeholder="Describe this portfolio item..."
                   rows={3}
+                  className="line-clamp-4"
                 />
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setDialogOpen(false)}>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setDialogOpen(false);
+                  resetForm();
+                }}
+              >
                 Cancel
               </Button>
               <Button onClick={addPortfolioItem} disabled={loading}>
-                {loading ? "Adding..." : "Add to Portfolio"}
+                {loading
+                  ? editMode
+                    ? "Updating..."
+                    : "Adding..."
+                  : editMode
+                  ? "Update Portfolio"
+                  : "Add to Portfolio"}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -363,7 +470,10 @@ export default function PortfolioManager() {
           {portfolio.map((item) => (
             <Card key={item.id} className="overflow-hidden">
               <div className="aspect-square overflow-hidden">
-                <img
+                <Image
+                  width={500}
+                  height={300}
+                  //@ts-expect-error : dont know what is error in this!!!
                   src={item.image || "/placeholder.svg"}
                   alt={item.title}
                   className="w-full h-full object-cover"
@@ -377,23 +487,34 @@ export default function PortfolioManager() {
                       {item.category}
                     </p>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="text-muted-foreground hover:text-destructive"
-                    onClick={() => deletePortfolioItem(item.id)}
-                  >
-                    <Trash className="h-4 w-4" />
-                  </Button>
+                  <div className="flex space-x-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-muted-foreground hover:text-primary"
+                      onClick={() => handleEditItem(item)}
+                    >
+                      <PencilIcon className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-muted-foreground hover:text-destructive"
+                      onClick={() => deletePortfolioItem(item.id)}
+                    >
+                      <Trash className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
                 {item.description && (
-                  <p className="text-sm mt-2 text-muted-foreground line-clamp-2">
+                  <p className="text-sm mt-2 text-muted-foreground line-clamp-3">
                     {item.description}
                   </p>
                 )}
               </CardContent>
             </Card>
           ))}
+          <Toaster />
 
           {portfolio.length === 0 && !loading && (
             <div className="col-span-full flex flex-col items-center justify-center py-12 text-center">
@@ -402,7 +523,7 @@ export default function PortfolioManager() {
               <p className="text-muted-foreground mt-1 mb-4">
                 Add your best work to showcase your skills to potential clients.
               </p>
-              <Button onClick={() => setDialogOpen(true)}>
+              <Button onClick={openAddDialog}>
                 <Plus className="mr-2 h-4 w-4" />
                 Add Your First Item
               </Button>

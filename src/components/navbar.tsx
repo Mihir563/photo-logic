@@ -25,70 +25,63 @@ import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { toast, Toaster } from "sonner";
+import NotificationCenter from "./notification";
 
 export default function Navbar() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [user, setUser] = useState<{ email: string } | null>(null);
+  const [user, setUser] = useState<{
+    email: string;
+    avatar_url: string;
+  } | null>(null);
   const router = useRouter();
-
-  useEffect(() => {
-    const getUserData = async () => {
-      // Step 1: Get Authenticated User
-      const { data: authData, error: authError } =
-        await supabase.auth.getUser();
-
-      if (authError) {
-        console.error("Error fetching user data:", authError.message);
-        return;
-      }
-
-      const user = authData?.user;
-      if (!user) {
-        console.log("No user is logged in");
-      } else {
-        setIsLoggedIn(true);
-      }
-
-      // Step 2: Fetch User Profile from `profiles` Table
-      const { data: profileData, error: profileError } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", user.id) // Match the `profiles` table ID with the Auth user ID
-        .single();
-
-      if (profileError) {
-        console.error("Error fetching profile data:", profileError.message);
-        return;
-      }
-
-      // Step 3: Store in State
-      setIsLoggedIn(true);
-      setUser(profileData);
-      setName(profileData.name);
-    };
-
-    getUserData();
-  }, []);
-
-  useEffect(() => {});
-
-  console.log(user);
-
+  
   const handleAuth = () => {
     router.push("/auth");
   };
-
+  
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) {
       console.error("Error logging out:", error.message);
     } else {
       router.push("/auth");
-      console.log("Successfully logged out!");
+      toast.success("Logged Out Successfully")
     }
   };
+
+
+useEffect(() => {
+  const {
+    data: { subscription },
+  } = supabase.auth.onAuthStateChange(async (event, session) => {
+    if (session?.user) {
+      // User logged in
+      const { data: profileData, error: profileError } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", session.user.id)
+        .single();
+
+      if (!profileError) {
+        setUser(profileData);
+        setName(profileData.name);
+        setIsLoggedIn(true);
+      }
+    } else {
+      // User logged out
+      setUser(null);
+      setName("");
+      setIsLoggedIn(false);
+    }
+  });
+
+  return () => {
+    subscription.unsubscribe(); // Clean up
+  };
+}, []);
+
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -105,21 +98,21 @@ export default function Navbar() {
               <text
                 x="40"
                 y="47"
-                text-anchor="middle"
-                font-family="Arial, sans-serif"
-                font-size="28"
+                textAnchor="middle"
+                fontFamily="Arial, sans-serif"
+                fontSize="28"
                 fill="#ffffff"
-                font-weight="bold"
+                fontWeight="bold"
               >
                 PL
               </text>
               <text
                 x="90"
                 y="50"
-                font-family="Helvetica, Arial, sans-serif"
-                font-size="32"
+                fontFamily="Helvetica, Arial, sans-serif"
+                fontSize="32"
                 fill="#1E3A8A"
-                font-weight="bold"
+                fontWeight="bold"
               >
                 PhotoLogic
               </text>
@@ -134,9 +127,9 @@ export default function Navbar() {
                   <ul className="grid gap-3 p-4 md:w-[400px] lg:w-[500px] lg:grid-cols-2">
                     <li className="row-span-3">
                       <NavigationMenuLink asChild>
-                        <a
+                        <Link
+                        href={"/"}
                           className="flex h-full w-full select-none flex-col justify-end rounded-md bg-gradient-to-b from-muted/50 to-muted p-6 no-underline outline-none focus:shadow-md"
-                          href="/"
                         >
                           <div className="mb-2 mt-4 text-lg font-medium">
                             Featured Photographers
@@ -145,7 +138,7 @@ export default function Navbar() {
                             Discover our top-rated photographers for your next
                             project
                           </p>
-                        </a>
+                        </Link>
                       </NavigationMenuLink>
                     </li>
                     <li>
@@ -233,9 +226,16 @@ export default function Navbar() {
 
         <div className="flex items-center gap-4">
           <div className="hidden md:flex">
-            <Button onClick={() => router.push('/search')} variant="ghost" size="icon">
+            <Button
+              onClick={() => router.push("/search")}
+              variant="ghost"
+              size="icon"
+            >
               <Search className="h-5 w-5" />
             </Button>
+          </div>
+          <div className=" md:flex">
+           <NotificationCenter/>
           </div>
 
           {isLoggedIn ? (
@@ -246,10 +246,7 @@ export default function Navbar() {
                   className="relative h-8 w-8 rounded-full"
                 >
                   <Avatar className="h-8 w-8">
-                    <AvatarImage
-                      src="/placeholder.svg?height=32&width=32"
-                      alt="User"
-                    />
+                    <AvatarImage src={user?.avatar_url} alt="User" />
                     <AvatarFallback>U</AvatarFallback>
                   </Avatar>
                 </Button>
@@ -310,11 +307,11 @@ export default function Navbar() {
                     <text
                       x="40"
                       y="47"
-                      text-anchor="middle"
-                      font-family="Arial, sans-serif"
-                      font-size="28"
+                      textAnchor="middle"
+                      fontFamily="Arial, sans-serif"
+                      fontSize="28"
                       fill="#ffffff"
-                      font-weight="bold"
+                      fontWeight="bold"
                     >
                       PL
                     </text>
@@ -322,29 +319,50 @@ export default function Navbar() {
                 </Link>
 
                 <div className="grid gap-2">
-                  <Link href="/discover" className="flex py-2 px-2">
+                  <Link
+                    href="#discover"
+                    className="flex py-2 px-2 hover:bg-gray-300 rounded-xl"
+                  >
                     Discover
                   </Link>
-                  <Link href="/how-it-works" className="flex py-2 px-2">
+                  <Link
+                    href="/how-it-works"
+                    className="flex py-2 px-2 hover:bg-gray-300 rounded-xl"
+                  >
                     How It Works
                   </Link>
-                  <Link href="/pricing" className="flex py-2 px-2">
+                  <Link
+                    href="/pricing"
+                    className="flex py-2 px-2 hover:bg-gray-300 rounded-xl"
+                  >
                     Pricing
                   </Link>
                 </div>
 
                 {isLoggedIn ? (
                   <div className="grid gap-2 mt-4">
-                    <Link href="/dashboard" className="flex py-2 px-2">
+                    <Link
+                      href="/dashboard"
+                      className="flex py-2 px-2 hover:bg-gray-300 rounded-xl"
+                    >
                       Dashboard
                     </Link>
-                    <Link href="/dashboard/profile" className="flex py-2 px-2">
+                    <Link
+                      href="/dashboard/profile"
+                      className="flex py-2 px-2 hover:bg-gray-300 rounded-xl"
+                    >
                       Profile
                     </Link>
-                    <Link href="/dashboard/bookings" className="flex py-2 px-2">
+                    <Link
+                      href="/dashboard/bookings"
+                      className="flex py-2 px-2 hover:bg-gray-300 rounded-xl"
+                    >
                       Bookings
                     </Link>
-                    <Link href="/dashboard/messages" className="flex py-2 px-2">
+                    <Link
+                      href="/dashboard/messages"
+                      className="flex py-2 px-2 hover:bg-gray-300 rounded-xl"
+                    >
                       Messages
                     </Link>
                     <Button
@@ -374,6 +392,7 @@ export default function Navbar() {
                   </div>
                 )}
               </div>
+              <Toaster/>
             </SheetContent>
           </Sheet>
         </div>

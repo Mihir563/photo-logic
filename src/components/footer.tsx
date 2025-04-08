@@ -91,7 +91,7 @@ export default function Footer() {
         </div>
 
         <div className="border-t mt-12 pt-6 flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-sm text-muted-foreground">© 2025 SnapPro. All rights reserved.</p>
+          <p className="text-sm text-muted-foreground">© 2025 PhotoLogic. All rights reserved.</p>
           <div className="flex gap-6 text-sm">
             <Link href="/terms" className="text-muted-foreground hover:text-foreground">
               Terms
