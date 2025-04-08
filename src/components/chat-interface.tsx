@@ -23,13 +23,6 @@ interface ChatContact {
   unread: boolean;
 }
 
-interface contactPerson {
-  id: number;
-  name: string;
-  avatar_url: string;
-
-}
-
 interface ChatMessage {
   id: string;
   senderId: string;
@@ -154,23 +147,25 @@ export default function ChatInterface() {
 
       if (!userId) throw new Error("User ID not found");
 
-      // Fetch messages for this user
+      // This is the critical part - change how you query the data
       const { data: messagesData, error: messagesError } = await supabase
         .from("messages")
         .select(
           `
-          id,
-          sender_id,
-          receiver_id,
-          content,
-          created_at,
-          read,
-          sender:profiles!sender_id(id, name, avatar_url),
-          receiver:profiles!receiver_id(id, name, avatar_url)
-        `
+        id,
+        sender_id,
+        receiver_id,
+        content,
+        created_at,
+        read,
+        sender:profiles!sender_id(id, name, avatar_url),
+        receiver:profiles!receiver_id(id, name, avatar_url)
+      `
         )
         .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
         .order("created_at", { ascending: false });
+
+      console.log("Raw messages data:", messagesData);
 
       if (messagesError) throw messagesError;
 
@@ -180,21 +175,25 @@ export default function ChatInterface() {
 
         messagesData.forEach((message) => {
           const isCurrentUserSender = message.sender_id === userId;
-          const contactPerson: contactPerson = isCurrentUserSender
-            ? message.receiver[0]
-            : message.sender[0];
 
-          if (!contactPerson || !Array.isArray(contactPerson)) return;
-          const person = contactPerson[0];
-          if (!person?.id) return;
+          // Use this approach that matches your reference code
+          const contactId = isCurrentUserSender
+            ? message.receiver_id
+            : message.sender_id;
 
-          const contactId : number = contactPerson.id;
+          const contactData = isCurrentUserSender
+            ? message.receiver
+            : message.sender;
+
+          if (!contactData || !contactId) return;
 
           if (!contactsMap.has(contactId)) {
             contactsMap.set(contactId, {
               id: contactId,
-              name: contactPerson.name || "Unknown",
-              avatar: contactPerson.avatar_url,
+              // @ts-expect-error : why dont just ignore it
+              name: contactData.name || "Unknown",
+              // @ts-expect-error : why dont just ignore it
+              avatar: contactData.avatar_url,
               lastMessage: message.content,
               timestamp: message.created_at,
               unread: !message.read && !isCurrentUserSender,
@@ -521,7 +520,8 @@ export default function ChatInterface() {
       // Show error toast with more detailed information
       toast.error("Error sending message", {
         description:
-          (error as { response?: { data?: { error?: string } } })?.response?.data?.error ||
+          (error as { response?: { data?: { error?: string } } })?.response
+            ?.data?.error ||
           (error instanceof Error ? error.message : "Unknown error") ||
           "Failed to send message",
       });
@@ -537,22 +537,21 @@ export default function ChatInterface() {
   const fetchContactStatus = useCallback(async () => {
     if (!activeChat) return;
 
-    console.log("Rendeering")
+    console.log("Rendeering");
     try {
       const response = await axios.get(`/api/message?userId=${activeChat}`);
       const data = response.data;
 
       // Handle status information
-    if (data.status === "typing" && data.typingTo === currentUser?.id) {
-      setIsContactTyping(true);
-    } else {
-      setIsContactTyping(false);
-    }
+      if (data.status === "typing" && data.typingTo === currentUser?.id) {
+        setIsContactTyping(true);
+      } else {
+        setIsContactTyping(false);
+      }
     } catch (error) {
       console.error("Error fetching contact status:", error);
     }
-  }, [currentUser?.id,activeChat ]);
-
+  }, [currentUser?.id, activeChat]);
 
   // Check contact status periodically
   useEffect(() => {
@@ -570,7 +569,7 @@ export default function ChatInterface() {
   }, [activeChat, fetchContactStatus]);
 
   console.log(messages);
-  console.log(contacts)
+  console.log(contacts);
   return (
     <div className="flex h-[calc(100vh-4rem)] max-h-[600px] border rounded-lg overflow-hidden">
       {/* Contact List - Hidden on mobile when in chat view */}

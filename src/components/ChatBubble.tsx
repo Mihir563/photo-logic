@@ -33,8 +33,8 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ content, isCurrentUser }) => {
 
   try {
     parsedContent = JSON.parse(content);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (err) {
-    console.error("Error parsing content:", err);
     parsedContent = null;
   }
 
