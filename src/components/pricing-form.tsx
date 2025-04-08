@@ -14,14 +14,14 @@ import { IndianRupee, Plus, Trash } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { toast, Toaster } from "sonner";
-import CosmicLoader from "@/app/loading";
 
 export default function PricingForm() {
   const [packages, setPackages] = useState<
     {
       id: string;
       name: string;
-      price: number;
+      priceMin: number;
+      priceMax: number;
       duration: number;
       description: string;
       included: string[];
@@ -29,7 +29,6 @@ export default function PricingForm() {
       hasChanges?: boolean;
     }[]
   >([]);
-  const [hourlyRate, setHourlyRate] = useState("150");
   const [loading, setLoading] = useState(true);
 
   // Fetch user profile and pricing packages
@@ -44,8 +43,7 @@ export default function PricingForm() {
         } = await supabase.auth.getUser();
 
         if (!user) {
-          toast.error(
-           "Authentication error",{
+          toast.error("Authentication error", {
             description: "Please sign in to manage your pricing packages",
           });
           return;
@@ -57,10 +55,6 @@ export default function PricingForm() {
           .select("hourly_rate")
           .eq("id", user.id)
           .single();
-
-        if (profileData?.hourly_rate) {
-          setHourlyRate(profileData.hourly_rate.toString());
-        }
 
         // Get pricing packages
         const { data: packagesData, error } = await supabase
@@ -78,7 +72,8 @@ export default function PricingForm() {
           const formattedPackages = packagesData.map((pkg) => ({
             id: pkg.id,
             name: pkg.name,
-            price: pkg.price,
+            priceMin: pkg.price_min || pkg.price || 0,
+            priceMax: pkg.price_max || pkg.price || 0,
             duration: pkg.duration || 1,
             description: pkg.description || "",
             included: pkg.included || [""],
@@ -91,7 +86,8 @@ export default function PricingForm() {
             {
               id: "temp-1",
               name: "Basic Session",
-              price: 150,
+              priceMin: 150,
+              priceMax: 250,
               duration: 1,
               description:
                 "1 hour photo session, 10 edited digital photos, Online gallery, Personal use license",
@@ -107,10 +103,11 @@ export default function PricingForm() {
         }
       } catch (error) {
         console.error("Error fetching data:", error);
-        toast.error(
-          "Error fetching data",{
-           //@ts-expect-error : dont know what is error in this!!!
-          description: error.message || "Failed to load your pricing packages",
+        toast.error("Error fetching data", {
+          description:
+            error instanceof Error
+              ? error.message
+              : "Failed to load your pricing packages",
         });
       } finally {
         setLoading(false);
@@ -120,43 +117,12 @@ export default function PricingForm() {
     fetchData();
   }, []);
 
-  // Save hourly rate to profiles table
-  const saveHourlyRate = async () => {
-    try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (!user) return;
-
-      const { error } = await supabase
-        .from("profiles")
-        .update({
-          hourly_rate: parseFloat(hourlyRate),
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", user.id);
-
-      if (error) throw error;
-
-      toast.success(
-        "Hourly rate updated",{
-        description: "Your hourly rate has been saved successfully",
-      });
-    } catch (error) {
-      console.error("Error saving hourly rate:", error);
-      toast.error(
-        "Error saving hourly rate",{
-        description: error instanceof Error ? error.message : "An unknown error occurred",
-      });
-    }
-  };
-
   const addPackage = () => {
     const newPackage = {
       id: `temp-${Date.now()}`,
       name: "New Package",
-      price: 0,
+      priceMin: 0,
+      priceMax: 0,
       duration: 1,
       description: "",
       included: [""],
@@ -165,12 +131,10 @@ export default function PricingForm() {
     setPackages([...packages, newPackage]);
   };
 
-  const removePackage = async (id:number) => {
+  const removePackage = async (id: string) => {
     try {
       // If it's a temporary ID (hasn't been saved to Supabase yet)
-           //@ts-expect-error : dont know what is error in this!!!
       if (id.startsWith("temp-")) {
-           //@ts-expect-error : dont know what is error in this!!!
         setPackages(packages.filter((pkg) => pkg.id !== id));
         return;
       }
@@ -183,24 +147,21 @@ export default function PricingForm() {
 
       if (error) throw error;
 
-           //@ts-expect-error : dont know what is error in this!!!
       setPackages(packages.filter((pkg) => pkg.id !== id));
 
-      toast.success(
-        "Package removed",{
+      toast.success("Package removed", {
         description: "Your package has been deleted successfully",
       });
     } catch (error) {
       console.error("Error removing package:", error);
       toast.error("Error removing package", {
-        //@ts-expect-error : dont know what is error in this!!!
-        description: error.message,
+        description:
+          error instanceof Error ? error.message : "An unknown error occurred",
       });
     }
   };
 
-           //@ts-expect-error : dont know what is error in this!!!
-  const handlePackageChange = (id, field, value) => {
+  const handlePackageChange = (id: string, field: string, value: any) => {
     setPackages(
       packages.map((pkg) => {
         if (pkg.id === id) {
@@ -211,13 +172,15 @@ export default function PricingForm() {
     );
   };
 
-  const handleIncludedItemChange = (packageId:number, itemIndex:number, value:number) => {
+  const handleIncludedItemChange = (
+    packageId: string,
+    itemIndex: number,
+    value: string
+  ) => {
     setPackages(
       packages.map((pkg) => {
-           //@ts-expect-error : dont know what is error in this!!!
         if (pkg.id === packageId) {
           const newIncluded = [...pkg.included];
-           //@ts-expect-error : dont know what is error in this!!!
           newIncluded[itemIndex] = value;
           return { ...pkg, included: newIncluded, hasChanges: true };
         }
@@ -226,10 +189,9 @@ export default function PricingForm() {
     );
   };
 
-  const addIncludedItem = (packageId:number) => {
+  const addIncludedItem = (packageId: string) => {
     setPackages(
       packages.map((pkg) => {
-        //@ts-expect-error : dont know what is error in this!!!
         if (pkg.id === packageId) {
           return {
             ...pkg,
@@ -242,10 +204,9 @@ export default function PricingForm() {
     );
   };
 
-  const removeIncludedItem = (packageId:number, itemIndex:number) => {
+  const removeIncludedItem = (packageId: string, itemIndex: number) => {
     setPackages(
       packages.map((pkg) => {
-        //@ts-expect-error : dont know what is error in this!!!
         if (pkg.id === packageId) {
           const newIncluded = [...pkg.included];
           newIncluded.splice(itemIndex, 1);
@@ -267,43 +228,49 @@ export default function PricingForm() {
       } = await supabase.auth.getUser();
 
       if (!user) {
-        toast.error(
-          "Authentication error",{
+        toast.error("Authentication error", {
           description: "Please sign in to save your pricing packages",
         });
         return;
       }
 
       // Save hourly rate
-      await saveHourlyRate();
+
+      // Check if the price_min and price_max columns exist
+      const { data: columnCheck } = await supabase
+        .from("pricing_packages")
+        .select("price_min, price_max")
+        .limit(1)
+
+      const columnsExist = columnCheck !== null;
 
       // Process each package
-      for (const pkg of packages as Array<{
-        id: string;
-        name: string;
-        price: number;
-        duration:number;
-        description: string;
-        included: string[];
-        isNew?: boolean;
-        hasChanges?: boolean;
-      }>) {
+      for (const pkg of packages) {
         // Format the package data for Supabase
-        const packageData = {
+        let packageData: any = {
           user_id: user.id,
           name: pkg.name,
-           //@ts-expect-error : dont know what is error in this!!!
-          price: parseFloat(pkg.price),
-           //@ts-expect-error : dont know what is error in this!!!
-          duration: parseInt(pkg.duration),
+          duration: parseFloat(pkg.duration.toString()),
           description: pkg.description,
           included: pkg.included.filter((item) => item.trim() !== ""),
           updated_at: new Date().toISOString(),
         };
 
+        // Add price fields based on column existence
+        if (columnsExist) {
+          // If the new columns exist, use them
+          packageData.price_min = parseFloat(pkg.priceMin.toString());
+          packageData.price_max = parseFloat(pkg.priceMax.toString());
+          // Still update the price field with the minimum for backward compatibility
+          packageData.price = parseFloat(pkg.priceMin.toString());
+        } else {
+          // If the columns don't exist yet, just use the price field with the minimum value
+          packageData.price = parseFloat(pkg.priceMin.toString());
+        }
+
         if (pkg.isNew || pkg.id.startsWith("temp-")) {
           // Insert new package
-          const {error } = await supabase
+          const { error } = await supabase
             .from("pricing_packages")
             .insert(packageData)
             .select();
@@ -332,7 +299,8 @@ export default function PricingForm() {
       const formattedPackages = refreshedPackages.map((pkg) => ({
         id: pkg.id,
         name: pkg.name,
-        price: pkg.price,
+        priceMin: pkg.price_min || pkg.price || 0,
+        priceMax: pkg.price_max || pkg.price || 0,
         duration: pkg.duration || 1,
         description: pkg.description || "",
         included: pkg.included || [""],
@@ -340,15 +308,14 @@ export default function PricingForm() {
 
       setPackages(formattedPackages);
 
-      toast.success(
-        "Packages saved",{
+      toast.success("Packages saved", {
         description: "Your pricing packages have been saved successfully",
       });
     } catch (error) {
       console.error("Error saving packages:", error);
-      toast.success("Error saving packages", {
-        //@ts-expect-error : dont know what is error in this!!!
-        description: error.message,
+      toast.error("Error saving packages", {
+        description:
+          error instanceof Error ? error.message : "An unknown error occurred",
       });
     }
   };
@@ -356,7 +323,6 @@ export default function PricingForm() {
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-[400px]">
-        <CosmicLoader/>
         <p>Loading your pricing information...</p>
       </div>
     );
@@ -364,30 +330,6 @@ export default function PricingForm() {
 
   return (
     <div>
-      <Card className="mb-8">
-        <CardHeader>
-          <CardTitle>Hourly Rate</CardTitle>
-          <CardDescription>
-            Set your base hourly rate for photography services
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center gap-2 max-w-md">
-            <div className="relative">
-              <IndianRupee className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input
-                className="pl-10"
-                value={hourlyRate}
-                onChange={(e) => setHourlyRate(e.target.value)}
-                type="number"
-                min="0"
-              />
-            </div>
-            <span className="text-muted-foreground">per hour</span>
-          </div>
-        </CardContent>
-      </Card>
-
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
@@ -408,7 +350,6 @@ export default function PricingForm() {
                 <Button
                   size="icon"
                   className="absolute top-4 right-4 text-muted-foreground hover:text-destructive"
-                  //@ts-expect-error : dont know what is error in this!!!
                   onClick={() => removePackage(pkg.id)}
                 >
                   <Trash className="h-4 w-4" />
@@ -436,47 +377,73 @@ export default function PricingForm() {
                       />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <label
-                          htmlFor={`price-${pkg.id}`}
-                          className="text-sm font-medium items-center flex"
-                        >
-                          Price <IndianRupee size={14} />
-                        </label>
-                        <Input
-                          id={`price-${pkg.id}`}
-                          value={pkg.price}
-                          onChange={(e) =>
-                            handlePackageChange(pkg.id, "price", e.target.value)
-                          }
-                          type="number"
-                          min="0"
-                        />
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium flex items-center">
+                        Price Range <IndianRupee size={14} className="ml-1" />
+                      </label>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="relative">
+                          <span className="absolute left-3 top-3 text-sm text-muted-foreground">
+                            From
+                          </span>
+                          <Input
+                            id={`priceMin-${pkg.id}`}
+                            className="pl-16"
+                            value={pkg.priceMin}
+                            onChange={(e) =>
+                              handlePackageChange(
+                                pkg.id,
+                                "priceMin",
+                                e.target.value
+                              )
+                            }
+                            type="number"
+                            min="0"
+                          />
+                        </div>
+                        <div className="relative">
+                          <span className="absolute left-3 top-3 text-sm text-muted-foreground">
+                            To
+                          </span>
+                          <Input
+                            id={`priceMax-${pkg.id}`}
+                            className="pl-12"
+                            value={pkg.priceMax}
+                            onChange={(e) =>
+                              handlePackageChange(
+                                pkg.id,
+                                "priceMax",
+                                e.target.value
+                              )
+                            }
+                            type="number"
+                            min="0"
+                          />
+                        </div>
                       </div>
+                    </div>
 
-                      <div className="space-y-2">
-                        <label
-                          htmlFor={`duration-${pkg.id}`}
-                          className="text-sm font-medium"
-                        >
-                          Duration (hours)
-                        </label>
-                        <Input
-                          id={`duration-${pkg.id}`}
-                          value={pkg.duration}
-                          onChange={(e) =>
-                            handlePackageChange(
-                              pkg.id,
-                              "duration",
-                              e.target.value
-                            )
-                          }
-                          type="number"
-                          min="0.5"
-                          step="0.5"
-                        />
-                      </div>
+                    <div className="space-y-2">
+                      <label
+                        htmlFor={`duration-${pkg.id}`}
+                        className="text-sm font-medium"
+                      >
+                        Duration (days)
+                      </label>
+                      <Input
+                        id={`duration-${pkg.id}`}
+                        value={pkg.duration}
+                        onChange={(e) =>
+                          handlePackageChange(
+                            pkg.id,
+                            "duration",
+                            e.target.value
+                          )
+                        }
+                        type="number"
+                        min="0.5"
+                        step="0.5"
+                      />
                     </div>
 
                     <div className="space-y-2">
@@ -513,7 +480,6 @@ export default function PricingForm() {
                               value={item}
                               onChange={(e) =>
                                 handleIncludedItemChange(
-                                  //@ts-expect-error : dont know what is error in this!!!
                                   pkg.id,
                                   itemIndex,
                                   e.target.value
@@ -524,7 +490,6 @@ export default function PricingForm() {
                             {itemIndex === pkg.included.length - 1 ? (
                               <Button
                                 size="icon"
-                                //@ts-expect-error : dont know what is error in this!!!
                                 onClick={() => addIncludedItem(pkg.id)}
                               >
                                 <Plus className="h-4 w-4" />
@@ -533,7 +498,6 @@ export default function PricingForm() {
                               <Button
                                 size="icon"
                                 onClick={() =>
-                                  //@ts-expect-error : dont know what is error in this!!!
                                   removeIncludedItem(pkg.id, itemIndex)
                                 }
                               >
@@ -553,7 +517,7 @@ export default function PricingForm() {
           <Toaster />
 
           <div className="mt-6">
-            <Button onClick={savePackages}>Save Pricing</Button>
+            <Button onClick={() => savePackages()}>Save Pricing</Button>
           </div>
         </CardContent>
       </Card>

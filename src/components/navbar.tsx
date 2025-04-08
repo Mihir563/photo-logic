@@ -270,9 +270,6 @@ useEffect(() => {
                 <DropdownMenuItem asChild>
                   <Link href="/dashboard/bookings">Bookings</Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/dashboard/messages">Messages</Link>
-                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => handleLogout()}>
                   Log out
@@ -358,12 +355,6 @@ useEffect(() => {
                       className="flex py-2 px-2 hover:bg-gray-300 rounded-xl"
                     >
                       Bookings
-                    </Link>
-                    <Link
-                      href="/dashboard/messages"
-                      className="flex py-2 px-2 hover:bg-gray-300 rounded-xl"
-                    >
-                      Messages
                     </Link>
                     <Button
                       variant="ghost"

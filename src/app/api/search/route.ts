@@ -22,7 +22,6 @@ export async function GET(request: Request) {
         location,
         bio,
         specialties,
-        hourly_rate,
         rating
       `)
       .eq("account_type", "photographer")
@@ -44,18 +43,7 @@ export async function GET(request: Request) {
       supabaseQuery = supabaseQuery.contains("specialties", specialties)
     }
 
-    supabaseQuery = supabaseQuery.gte("hourly_rate", minPrice).lte("hourly_rate", maxPrice)
 
-    // Apply sorting
-    if (sortBy === "rating") {
-      supabaseQuery = supabaseQuery.order("rating", { ascending: false })
-    } else if (sortBy === "price_low") {
-      supabaseQuery = supabaseQuery.order("hourly_rate", { ascending: true })
-    } else if (sortBy === "price_high") {
-      supabaseQuery = supabaseQuery.order("hourly_rate", { ascending: false })
-    } else if (sortBy === "newest") {
-      supabaseQuery = supabaseQuery.order("created_at", { ascending: false })
-    }
 
     const { data, error } = await supabaseQuery
 
@@ -67,14 +55,14 @@ export async function GET(request: Request) {
     const photographers = data.map((profile) => ({
       id: profile.id,
       name: profile.name,
-      avatar: profile.avatar_url,
+      avatar_url: profile.avatar_url,
       coverImage: profile.cover_image,
       location: profile.location,
       rating: profile.rating || 0,
       specialties: profile.specialties || [],
-      price: profile.hourly_rate || 0,
       bio: profile.bio || "",
     }))
+    console.log(photographers)
 
     return NextResponse.json({ photographers })
   } catch (error) {

@@ -49,6 +49,17 @@ interface Photographer {
   }>;
 }
 
+interface PricingPackage {
+  id: string;
+  name: string;
+  price: number;
+  price_min?: number;
+  price_max?: number;
+  duration?: number;
+  description?: string;
+  included?: string[];
+}
+
 interface Availability {
   available_dates: string[];
   settings: {
@@ -70,13 +81,11 @@ interface Availability {
 export default function PhotographerProfile() {
   const params = useParams();
   const [photographer, setPhotographer] = useState<Photographer | null>(null);
-  const [pricingPackages, setPricingPackages] = useState<
-    Array<{ id: string; name: string; price: number; duration?: number; included?: string[] }>
-  >([]);
+  const [pricingPackages, setPricingPackages] = useState<PricingPackage[]>([]);
   const [availability, setAvailability] = useState<Availability | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [clientId, setClientId] = useState<  string[] | undefined >();
+  const [clientId, setClientId] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -84,7 +93,7 @@ export default function PhotographerProfile() {
       if (error) {
         console.error("Error fetching user:", error);
       } else {
-        setClientId(data?.user?.id ? [data.user.id] : undefined);
+        setClientId(data?.user?.id);
       }
     };
     fetchUser();
@@ -123,16 +132,17 @@ export default function PhotographerProfile() {
         const transformedData = {
           ...data,
           specialties: data.specialties,
-          //@ts-expect-error : dont know what is error in this!!!
-          portfolio: data.portfolio.map((p) => ({
-            title: p.title,
-            id: p.id,
-            imageUrl: p.image,
-            category: p.category,
-            description: p.description,
-            createdAt: p.created_at,
-            specialties: p.specialties,
-          })),
+          portfolio: data.portfolio
+            ? data.portfolio.map((p: any) => ({
+                title: p.title,
+                id: p.id,
+                imageUrl: p.image,
+                category: p.category,
+                description: p.description,
+                createdAt: p.created_at,
+                specialties: p.specialties,
+              }))
+            : [],
         };
 
         setPhotographer(transformedData);
@@ -214,12 +224,25 @@ export default function PhotographerProfile() {
     return `${formattedHour}:${minutes} ${period}`;
   };
 
+  // Function to display package price (either as fixed or range)
+  const displayPackagePrice = (pkg: PricingPackage) => {
+    // If we have price_min and price_max, display as range
+    if (pkg.price_min !== undefined && pkg.price_max !== undefined) {
+      // If price_min and price_max are the same, show a single price
+      if (pkg.price_min === pkg.price_max) {
+        return `₹${pkg.price_min}`;
+      }
+      return `₹${pkg.price_min} - ₹${pkg.price_max}`;
+    }
+    // Otherwise, fall back to the single price field
+    return `₹${pkg.price}`;
+  };
 
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-8 flex justify-center items-center min-h-[60vh]">
         <div className="text-center">
-          <CosmicLoader/>
+          <CosmicLoader />
           <p className="mt-4 text-muted-foreground">
             Loading photographer profile...
           </p>
@@ -380,7 +403,7 @@ export default function PhotographerProfile() {
         </TabsList>
 
         <TabsContent value="portfolio" className="mt-6">
-          {/* @ts-expect-error : dont know what is error in this!!! */}
+          {/* @ts-expect-error: please pass this!!! */}
           <PortfolioGallery portfolio={photographer?.portfolio} />
         </TabsContent>
 
@@ -391,27 +414,36 @@ export default function PhotographerProfile() {
                 <CardContent className="pt-6">
                   <h3 className="text-xl font-bold mb-2">{pkg.name}</h3>
                   <div className="text-2xl font-semibold mb-4">
-                    ₹{pkg.price}
-                    {pkg.duration !== undefined ? "/ hour" : "/ package"}
+                    {displayPackagePrice(pkg)}
+                      <span className="text-lg text-muted-foreground">
+                        {" "}
+                        / package
+                      </span>
                   </div>
+                  {pkg.description && (
+                    <p className="text-muted-foreground mb-4">
+                      {pkg.description}
+                    </p>
+                  )}
                   <ul className="space-y-2 mb-6">
                     {pkg.included && pkg.included.length > 0 ? (
                       pkg.included.map((item, i: number) => (
                         <li key={i} className="flex items-center">
-                          <span className="mr-2">✓</span> {item}
+                          <span className="mr-2 text-green-500">✓</span> {item}
                         </li>
                       ))
                     ) : (
                       <>
                         <li className="flex items-center">
-                          <span className="mr-2">✓</span> {pkg.duration} hour
-                          photo session
+                          <span className="mr-2 text-green-500">✓</span>{" "}
+                          {pkg.duration} hour photo session
                         </li>
                         <li className="flex items-center">
-                          <span className="mr-2">✓</span> Online gallery
+                          <span className="mr-2 text-green-500">✓</span> Online
+                          gallery
                         </li>
                         <li className="flex items-center">
-                          <span className="mr-2">✓</span>{" "}
+                          <span className="mr-2 text-green-500">✓</span>{" "}
                           {pkg.name === "Basic Session"
                             ? "Personal"
                             : "Commercial"}{" "}
@@ -419,7 +451,7 @@ export default function PhotographerProfile() {
                         </li>
                         {pkg.duration !== undefined && pkg.duration > 1 && (
                           <li className="flex items-center">
-                            <span className="mr-2">✓</span>{" "}
+                            <span className="mr-2 text-green-500">✓</span>{" "}
                             {pkg.duration > 2
                               ? "Multiple locations"
                               : "1 location"}
@@ -541,13 +573,15 @@ export default function PhotographerProfile() {
                         </>
                       )}
                     </div>
-                    <RequestBookingButton
-                      clientId={clientId?.[0] || ""}
-                      photographerId={photographer?.id}
-                      photographerName={photographer?.name}
-                      availableDates={availability?.available_dates || []}
-                      workingHours={availability?.working_hours ?? {}}
-                    />
+                    <div className="mt-6">
+                      <RequestBookingButton
+                        clientId={clientId || ""}
+                        photographerId={photographer?.id}
+                        photographerName={photographer?.name}
+                        availableDates={availability?.available_dates || []}
+                        workingHours={availability?.working_hours || {}}
+                      />
+                    </div>
                   </CardContent>
                 </Card>
               </div>
@@ -557,7 +591,7 @@ export default function PhotographerProfile() {
 
         <TabsContent value="inquire">
           <InquiryForm
-            clientId={clientId?.[0] || ""}
+            clientId={clientId || ""}
             photographerId={photographer?.id}
             photographerName={photographer?.name}
           />

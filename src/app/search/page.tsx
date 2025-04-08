@@ -36,7 +36,6 @@ export default function SearchPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [location, setLocation] = useState("");
   const [category, setCategory] = useState("");
-  const [priceRange, setPriceRange] = useState([0, 100000]);
   const [specialties, setSpecialties] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState("rating");
   const [activeFilters, setActiveFilters] = useState(0);
@@ -52,8 +51,6 @@ export default function SearchPage() {
         if (searchQuery) params.append("query", searchQuery);
         if (location) params.append("location", location);
         if (category) params.append("category", category);
-        params.append("minPrice", priceRange[0].toString());
-        params.append("maxPrice", priceRange[1].toString());
         if (specialties.length > 0)
           params.append("specialties", specialties.join(","));
         params.append("sortBy", sortBy);
@@ -78,10 +75,11 @@ export default function SearchPage() {
             location: profile.location,
             rating: profile.rating || 0,
             specialties: profile.specialties || [],
-            hourly_rate: profile.price || 0,
             bio: profile.bio || "",
             portfolio: [],
           }));
+
+          console.log(formattedData)
 
           setPhotographers(formattedData);
         }
@@ -90,6 +88,7 @@ export default function SearchPage() {
           //@ts-expect-error : dont know what is error in this!!!
           description: error.message,
         });
+        console.log(error)
       } finally {
         setLoading(false);
       }
@@ -102,10 +101,9 @@ export default function SearchPage() {
     if (searchQuery) count++;
     if (location) count++;
     if (category) count++;
-    if (priceRange[0] > 0 || priceRange[1] < 100000) count++;
     if (specialties.length > 0) count++;
     setActiveFilters(count);
-  }, [searchQuery, location, category, priceRange, specialties, sortBy]);
+  }, [searchQuery, location, category, specialties, sortBy]);
 
   const handleSpecialtyChange = (specialty: string, checked: boolean) => {
     if (checked) {
@@ -124,7 +122,6 @@ export default function SearchPage() {
     setSearchQuery("");
     setLocation("");
     setCategory("");
-    setPriceRange([0, 100000]);
     setSpecialties([]);
     setSortBy("rating");
   };
@@ -232,21 +229,6 @@ export default function SearchPage() {
               </Button>
 
               <div className="space-y-4">
-                <h4 className="text-sm font-medium">Price Range</h4>
-                <Slider
-                  value={priceRange}
-                  min={0}
-                  max={100000}
-                  step={1000}
-                  onValueChange={setPriceRange}
-                />
-                <div className="flex items-center justify-between">
-                  <span className="text-sm">₹{priceRange[0]}</span>
-                  <span className="text-sm">₹{priceRange[1]}</span>
-                </div>
-              </div>
-
-              <div className="space-y-4">
                 <h4 className="text-sm font-medium">Specialties</h4>
                 <div className="grid grid-cols-2 gap-2">
                   {[
@@ -289,8 +271,6 @@ export default function SearchPage() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="rating">Highest Rated</SelectItem>
-            <SelectItem value="price_low">Price: Low to High</SelectItem>
-            <SelectItem value="price_high">Price: High to Low</SelectItem>
             <SelectItem value="newest">Newest</SelectItem>
           </SelectContent>
         </Select>
@@ -309,21 +289,6 @@ export default function SearchPage() {
             >
               Clear All Filters
             </Button>
-          </div>
-
-          <div className="space-y-4">
-            <h4 className="text-sm font-medium">Price Range</h4>
-            <Slider
-              value={priceRange}
-              min={0}
-              max={100000}
-              step={1000}
-              onValueChange={setPriceRange}
-            />
-            <div className="flex items-center justify-between">
-              <span className="text-sm">₹{priceRange[0]}</span>
-              <span className="text-sm">₹{priceRange[1]}</span>
-            </div>
           </div>
 
           <div className="space-y-4">
@@ -359,8 +324,6 @@ export default function SearchPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="rating">Highest Rated</SelectItem>
-                <SelectItem value="price_low">Price: Low to High</SelectItem>
-                <SelectItem value="price_high">Price: High to Low</SelectItem>
                 <SelectItem value="newest">Newest</SelectItem>
               </SelectContent>
             </Select>

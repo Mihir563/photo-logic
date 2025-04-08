@@ -5,7 +5,6 @@ import {
   Camera,
   Check,
   X,
-  MessageSquare,
   Calendar,
   FileText,
   Users,
@@ -85,13 +84,6 @@ const PricingPage: React.FC = () => {
       pro: true,
       business: true,
       icon: <FileText size={18} />,
-    },
-    {
-      name: "Real-time Chat",
-      starter: false,
-      pro: true,
-      business: true,
-      icon: <MessageSquare size={18} />,
     },
     {
       name: "Smart Shoot Planning",

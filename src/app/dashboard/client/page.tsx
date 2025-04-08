@@ -1,11 +1,11 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { MessageSquare, Camera, CalendarIcon } from "lucide-react";
+import { Camera, CalendarIcon } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useRouter, useSearchParams } from "next/navigation";
-import Link from "next/link";
+import { useState, useEffect } from "react";
 
 export default function ClientDashboard() {
   const router = useRouter();
@@ -18,95 +18,93 @@ export default function ClientDashboard() {
     if (!tab) return "bookings";
 
     // Check if the tab is one of our valid tabs
-    const validTabs = ["bookings", "messages", "profile"];
+    const validTabs = ["bookings", "profile"];
     if (validTabs.includes(tab)) return tab;
 
     return "bookings";
   };
 
+  const [activeTab, setActiveTab] = useState(getCurrentTab());
+
+  // Update active tab when URL changes
+  useEffect(() => {
+    setActiveTab(getCurrentTab());
+  }, [searchParams]);
+
+  // Handle tab change
+  const handleTabChange = (value:string) => {
+    setActiveTab(value);
+    // Update URL without causing a full navigation
+    const newUrl = `/dashboard/client?tab=${value}`;
+    router.replace(newUrl, { scroll: false });
+  };
+
   return (
     <>
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 md:mb-8 gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Client Dashboard</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl md:text-3xl font-bold">Client Dashboard</h1>
+          <p className="text-sm md:text-base text-muted-foreground">
             Manage your bookings and find photographers
           </p>
         </div>
-        <Button onClick={() => router.push("/photographers")}>
+        <Button
+          onClick={() => router.push("/photographers")}
+          className="w-full md:w-auto"
+        >
           Find Photographers
         </Button>
       </div>
 
       {/* Client Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 md:gap-4 mb-6 md:mb-8">
         <Card>
-          <CardContent className="p-6 flex items-center justify-between">
+          <CardContent className="p-4 md:p-6 flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-muted-foreground">
+              <p className="text-xs md:text-sm font-medium text-muted-foreground">
                 My Bookings
               </p>
-              <h3 className="text-2xl font-bold mt-1">0</h3>
+              <h3 className="text-xl md:text-2xl font-bold mt-1">0</h3>
             </div>
-            <div className="bg-primary/10 p-3 rounded-full">
-              <CalendarIcon className="h-6 w-6 text-primary" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6 flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">
-                New Messages
-              </p>
-              <h3 className="text-2xl font-bold mt-1">0</h3>
-            </div>
-            <div className="bg-primary/10 p-3 rounded-full">
-              <MessageSquare className="h-6 w-6 text-primary" />
+            <div className="bg-primary/10 p-2 md:p-3 rounded-full">
+              <CalendarIcon className="h-5 w-5 md:h-6 md:w-6 text-primary" />
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-6 flex items-center justify-between">
+          <CardContent className="p-4 md:p-6 flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-muted-foreground">
+              <p className="text-xs md:text-sm font-medium text-muted-foreground">
                 Favorite Photographers
               </p>
-              <h3 className="text-2xl font-bold mt-1">0</h3>
+              <h3 className="text-xl md:text-2xl font-bold mt-1">0</h3>
             </div>
-            <div className="bg-primary/10 p-3 rounded-full">
-              <Camera className="h-6 w-6 text-primary" />
+            <div className="bg-primary/10 p-2 md:p-3 rounded-full">
+              <Camera className="h-5 w-5 md:h-6 md:w-6 text-primary" />
             </div>
           </CardContent>
         </Card>
       </div>
 
-      <Tabs defaultValue={getCurrentTab()} className="mt-8">
-        <TabsList className="grid w-full grid-cols-3 mb-8">
-          <TabsTrigger
-            value="bookings"
-            onClick={() => router.push("/dashboard/client?tab=bookings")}
-            data-active={getCurrentTab() === "bookings"}
-          >
-            My Bookings
-          </TabsTrigger>
-          <TabsTrigger
-            value="messages"
-            onClick={() => router.push("/dashboard/client?tab=messages")}
-            data-active={getCurrentTab() === "messages"}
-          >
-            Messages
-          </TabsTrigger>
-          <TabsTrigger
-            value="profile"
-            onClick={() => router.push("/dashboard/client?tab=profile")}
-            data-active={getCurrentTab() === "profile"}
-          >
-            Profile
-          </TabsTrigger>
+      <Tabs
+        value={activeTab}
+        onValueChange={handleTabChange}
+        className="mt-4 md:mt-8"
+      >
+        <TabsList className="grid w-full grid-cols-2 mb-4 md:mb-8">
+          <TabsTrigger value="bookings">My Bookings</TabsTrigger>
+          <TabsTrigger value="profile">Profile</TabsTrigger>
         </TabsList>
+
+        {/* This will be rendered in the children slot of the parallel route */}
+        <TabsContent value="bookings">
+          {/* Bookings content will be inserted via parallel routes */}
+        </TabsContent>
+
+        <TabsContent value="profile">
+          {/* Profile content will be inserted via parallel routes */}
+        </TabsContent>
       </Tabs>
     </>
   );

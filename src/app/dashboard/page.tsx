@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
-import { MessageSquare, Users, CalendarIcon, IndianRupee } from "lucide-react";
+import { Users, CalendarIcon, IndianRupee } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useRouter } from "next/navigation";
@@ -13,7 +13,6 @@ export default function PhotographerDashboard() {
   const [userData, setUserData] = useState<{ id: string } | null>(null);
   const [stats, setStats] = useState({
     totalBookings: 0,
-    newMessages: 0,
     profileViews: 0,
     totalRevenue: 0,
   });
@@ -43,12 +42,6 @@ export default function PhotographerDashboard() {
             .select("*", { count: "exact" })
             .eq("photographer_id", user.id);
 
-          const { count: messagesCount } = await supabase
-            .from("messages")
-            .select("*", { count: "exact" })
-            .eq("receiver_id", user.id)
-            .eq("read", false);
-
           const { data: completedBookings } = await supabase
             .from("bookings")
             .select("*")
@@ -66,12 +59,6 @@ export default function PhotographerDashboard() {
               completedBookings.length * (pricingPackages[0]?.price || 0);
           }
 
-          setStats({
-            totalBookings: bookingsCount || 0,
-            newMessages: messagesCount || 0,
-            profileViews: profileData.profile_views || 0,
-            totalRevenue: revenue,
-          });
         }
       }
     };
@@ -92,7 +79,6 @@ export default function PhotographerDashboard() {
       // Check if the last segment is one of our valid tabs
       const validTabs = [
         "bookings",
-        "messages",
         "portfolio",
         "profile",
         "pricing",
@@ -111,7 +97,7 @@ export default function PhotographerDashboard() {
         <div>
           <h1 className="text-3xl font-bold">Photographer Dashboard</h1>
           <p className="text-muted-foreground">
-            Manage your profile, bookings, and messages
+            Manage your profile, bookings
           </p>
         </div>
         <Button onClick={() => router.push(`/photographers/${userData?.id}`)}>
@@ -131,20 +117,6 @@ export default function PhotographerDashboard() {
             </div>
             <div className="bg-primary/10 p-3 rounded-full">
               <CalendarIcon className="h-6 w-6 text-primary" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6 flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">
-                New Messages
-              </p>
-              <h3 className="text-2xl font-bold mt-1">{stats.newMessages}</h3>
-            </div>
-            <div className="bg-primary/10 p-3 rounded-full">
-              <MessageSquare className="h-6 w-6 text-primary" />
             </div>
           </CardContent>
         </Card>
@@ -182,8 +154,8 @@ export default function PhotographerDashboard() {
       </div>
 
       <Tabs defaultValue={getCurrentTab()} className="mt-8">
-        <TabsList className="flex flex-wrap justify-center gap-2 md:justify-start">
-          <Link href="/dashboard/bookings" passHref>
+        <TabsList className="flex flex-wrap justify-center gap-2 md:justify-start ">
+          <Link href="/dashboard/bookings" passHref className="cursor-pointer">
             <TabsTrigger
               value="bookings"
               className="flex-1 min-w-[120px]"
@@ -192,17 +164,7 @@ export default function PhotographerDashboard() {
               Bookings
             </TabsTrigger>
           </Link>
-          <Link href="/dashboard/messages" passHref>
-            <TabsTrigger
-              value="messages"
-              className="flex-1 min-w-[120px]"
-              data-active={getCurrentTab() === "messages"}
-            >
-              Messages
-              
-            </TabsTrigger>
-          </Link>
-          <Link href="/dashboard/portfolio" passHref>
+          <Link href="/dashboard/portfolio" passHref className="cursor-pointer">
             <TabsTrigger
               value="portfolio"
               className="flex-1 min-w-[120px]"
@@ -211,7 +173,7 @@ export default function PhotographerDashboard() {
               Portfolio
             </TabsTrigger>
           </Link>
-          <Link href="/dashboard/profile" passHref>
+          <Link href="/dashboard/profile" passHref className="cursor-pointer">
             <TabsTrigger
               value="profile"
               className="flex-1 min-w-[120px]"
@@ -220,7 +182,7 @@ export default function PhotographerDashboard() {
               Profile
             </TabsTrigger>
           </Link>
-          <Link href="/dashboard/pricing" passHref>
+          <Link href="/dashboard/pricing" passHref className="cursor-pointer">
             <TabsTrigger
               value="pricing"
               className="flex-1 min-w-[120px]"
@@ -229,7 +191,7 @@ export default function PhotographerDashboard() {
               Pricing
             </TabsTrigger>
           </Link>
-          <Link href="/dashboard/availability" passHref>
+          <Link href="/dashboard/availability" passHref className="cursor-pointer">
             <TabsTrigger
               value="availability"
               className="flex-1 min-w-[120px]"

@@ -6,7 +6,6 @@ import {
   X,
   Check,
   Calendar,
-  MessageSquare,
   Search,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
@@ -317,9 +316,6 @@ export default function NotificationsPage() {
       case "booking_cancelled":
         router.push("/dashboard/bookings");
         break;
-      case "new_message":
-        router.push("/dashboard/messages");
-        break;
       case "booking_sent":
         router.push("/dashboard/bookings");
         break;
@@ -341,8 +337,6 @@ export default function NotificationsPage() {
       case "booking_cancelled":
       case "booking_sent":
         return <Calendar className="h-5 w-5 text-primary" />;
-      case "new_message":
-        return <MessageSquare className="h-5 w-5 text-blue-500" />;
       default:
         return <Bell className="h-5 w-5 text-muted-foreground" />;
     }
