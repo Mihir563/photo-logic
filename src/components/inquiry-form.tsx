@@ -65,17 +65,17 @@ export default function InquiryForm({
         },
       };
 
-      // Send inquiry to Supabase
-      const { error: supabaseError } = await supabase.from("messages").insert({
-        sender_id: clientId,
-        receiver_id: photographerId,
-        content: JSON.stringify(inquiryMessage),
-        created_at: new Date().toISOString(),
-      });
+      // // Send inquiry to Supabase
+      // const { error: supabaseError } = await supabase.from("messages").insert({
+      //   sender_id: clientId,
+      //   receiver_id: photographerId,
+      //   content: JSON.stringify(inquiryMessage),
+      //   created_at: new Date().toISOString(),
+      // });
 
-      if (supabaseError) {
-        throw new Error(supabaseError.message);
-      }
+      // if (supabaseError) {
+      //   throw new Error(supabaseError.message);
+      // }
 
       // Set success state
       setIsSuccess(true);

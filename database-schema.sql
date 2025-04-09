@@ -145,3 +145,11 @@ CREATE TABLE IF NOT EXISTS public.chat_status (
 
 -- Add read_at column to messages if not exists
 ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS read_at TIMESTAMP WITH TIME ZONE;
+
+-- adding price_min and price_max to pricing_packages
+ALTER TABLE pricing_packages 
+ADD COLUMN price_min DECIMAL(10, 2),
+ADD COLUMN price_max DECIMAL(10, 2);
+
+-- Then migrate existing data
+UPDATE pricing_packages SET price_min = price, price_max = price;
