@@ -1,7 +1,4 @@
-"use client";
-
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+'use client'
 import { Suspense } from "react";
 import {
   Card,
@@ -12,14 +9,16 @@ import {
 } from "@/components/ui/card";
 import ProfileForm from "@/components/profile-form";
 import CosmicLoader from "@/app/loading";
+import { useSearchParams } from "next/navigation";
 
-export default function ClientProfilePage() {
-  const router = useRouter();
+export default function ClientProfileTab() {
+  const searchParams = useSearchParams();
+  const currentTab = searchParams.get("tab") || "bookings";
 
-  useEffect(() => {
-    // Redirect to the tab-based URL format while preserving functionality
-    router.replace("/dashboard/client?tab=profile");
-  }, [router]);
+  // Only render this component when it's the active tab
+  if (currentTab !== "profile") {
+    return null;
+  }
 
   return (
     <Card className="mt-4">

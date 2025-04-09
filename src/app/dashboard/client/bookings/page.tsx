@@ -1,7 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Camera } from "lucide-react";
 import {
@@ -11,14 +9,17 @@ import {
   CardDescription,
   CardContent,
 } from "@/components/ui/card";
+import { useRouter, useSearchParams } from "next/navigation";
 
-export default function ClientBookingsPage() {
+export default function ClientBookingsTab() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const currentTab = searchParams.get("tab") || "bookings";
 
-  useEffect(() => {
-    // Redirect to the tab-based URL format while preserving functionality
-    router.replace("/dashboard/client?tab=bookings");
-  }, [router]);
+  // Only render this component when it's the active tab
+  if (currentTab !== "bookings") {
+    return null;
+  }
 
   return (
     <Card className="mt-4">

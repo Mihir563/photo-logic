@@ -79,17 +79,24 @@ export default function DashboardLayout({
   useEffect(() => {
     // Only redirect if we have determined the user role and are not already loading
     if (!loading && userRole) {
+      // Check if user is accessing the wrong dashboard type
+      const isClientAccessingPhotographerDashboard =
+        userRole === "client" &&
+        pathname.startsWith("/dashboard") &&
+        !pathname.includes("/dashboard/client") &&
+        !pathname.includes("/dashboard/[...slug]");
+
+      const isPhotographerAccessingClientDashboard =
+        userRole === "photographer" && pathname.includes("/dashboard/client");
+
       // Redirect client users to client dashboard
-      if (userRole === "client" && !pathname.includes("/dashboard/client")) {
+      if (isClientAccessingPhotographerDashboard) {
         router.push("/dashboard/client?tab=bookings");
         return;
       }
 
       // Redirect photographer users to photographer dashboard
-      if (
-        userRole === "photographer" &&
-        pathname.includes("/dashboard/client")
-      ) {
+      if (isPhotographerAccessingClientDashboard) {
         router.push("/dashboard?tab=bookings");
         return;
       }

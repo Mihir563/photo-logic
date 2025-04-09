@@ -14,36 +14,37 @@ export default function ClientLayout({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  
+
   // Get the current tab from URL or default to "bookings"
   const currentTab = searchParams.get("tab") || "bookings";
 
   useEffect(() => {
-    // If we're at the root client dashboard with no tab parameter, redirect to the bookings tab
+    // Only redirect if we're at the root client dashboard with no tab parameter
     if (pathname === "/dashboard/client" && !searchParams.get("tab")) {
       router.replace("/dashboard/client?tab=bookings", { scroll: false });
     }
   }, [pathname, router, searchParams]);
 
-  // This would normally be inside tabs/page
+  // Function to render the correct tab content based on the URL parameter
   const renderTabContent = () => {
-    return (
-      <Suspense fallback={<CosmicLoader />}>
-        {tabs}
-      </Suspense>
-    );
+    // Access the tabs slot's children to conditionally render the correct one
+    if (!tabs) {
+      return null;
+    }
+
+    // The `tabs` is a React element that contains all tab content components
+    // We're using it as a container and manually selecting which content to show
+    return tabs;
   };
 
   return (
     <div className="flex flex-col gap-4 md:gap-8">
       {/* Main dashboard UI */}
-      <Suspense fallback={<CosmicLoader />}>
-        {children}
-      </Suspense>
+      <Suspense fallback={<CosmicLoader />}>{children}</Suspense>
 
-      {/* Tab content */}
+      {/* Tab content - only render what's needed based on the URL tab parameter */}
       <div className="tab-content">
-        {renderTabContent()}
+        <Suspense fallback={<CosmicLoader />}>{renderTabContent()}</Suspense>
       </div>
     </div>
   );

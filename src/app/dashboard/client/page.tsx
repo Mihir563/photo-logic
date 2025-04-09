@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Camera, CalendarIcon } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect } from "react";
 
@@ -32,7 +32,9 @@ export default function ClientDashboard() {
   }, [searchParams]);
 
   // Handle tab change
-  const handleTabChange = (value:string) => {
+  const handleTabChange = (value: string) => {
+    if (value === activeTab) return; // Don't trigger unnecessary navigation
+
     setActiveTab(value);
     // Update URL without causing a full navigation
     const newUrl = `/dashboard/client?tab=${value}`;
@@ -96,15 +98,6 @@ export default function ClientDashboard() {
           <TabsTrigger value="bookings">My Bookings</TabsTrigger>
           <TabsTrigger value="profile">Profile</TabsTrigger>
         </TabsList>
-
-        {/* This will be rendered in the children slot of the parallel route */}
-        <TabsContent value="bookings">
-          {/* Bookings content will be inserted via parallel routes */}
-        </TabsContent>
-
-        <TabsContent value="profile">
-          {/* Profile content will be inserted via parallel routes */}
-        </TabsContent>
       </Tabs>
     </>
   );
