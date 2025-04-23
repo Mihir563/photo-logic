@@ -7,10 +7,7 @@ export async function GET(request: Request) {
     const query = searchParams.get("query") || ""
     const location = searchParams.get("location") || ""
     const category = searchParams.get("category") || ""
-    const minPrice = Number.parseInt(searchParams.get("minPrice") || "0")
-    const maxPrice = Number.parseInt(searchParams.get("maxPrice") || "100000")
     const specialties = searchParams.get("specialties")?.split(",") || []
-    const sortBy = searchParams.get("sortBy") || "rating"
 
     let supabaseQuery = supabase
       .from("profiles")

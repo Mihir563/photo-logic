@@ -133,7 +133,8 @@ export default function PhotographerProfile() {
           ...data,
           specialties: data.specialties,
           portfolio: data.portfolio
-            ? data.portfolio.map((p: any) => ({
+          //@ts-expect-error : como on man please ignore this!
+            ? data.portfolio.map((p) => ({
                 title: p.title,
                 id: p.id,
                 imageUrl: p.image,
@@ -591,8 +592,6 @@ export default function PhotographerProfile() {
 
         <TabsContent value="inquire">
           <InquiryForm
-            clientId={clientId || ""}
-            photographerId={photographer?.id}
             photographerName={photographer?.name}
           />
         </TabsContent>

@@ -1,11 +1,20 @@
+// src/app/dashboard/client/page.tsx
 "use client";
 
 import { Button } from "@/components/ui/button";
 import { Camera, CalendarIcon } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
+import ProfileForm from "@/components/profile-form";
+import CosmicLoader from "@/app/loading";
 
 export default function ClientDashboard() {
   const router = useRouter();
@@ -39,6 +48,63 @@ export default function ClientDashboard() {
     // Update URL without causing a full navigation
     const newUrl = `/dashboard/client?tab=${value}`;
     router.replace(newUrl, { scroll: false });
+  };
+
+  // Render the appropriate tab content based on the active tab
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case "bookings":
+        return (
+          <Card className="mt-4">
+            <CardHeader>
+              <CardTitle>My Bookings</CardTitle>
+              <CardDescription>
+                Manage your photography sessions
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center py-16">
+                <Camera className="h-16 w-16 mx-auto text-muted-foreground" />
+                <h3 className="text-xl font-medium mt-4">No bookings yet</h3>
+                <p className="text-muted-foreground mt-2">
+                  Book a session with a photographer to get started
+                </p>
+                <Button
+                  className="mt-4"
+                  onClick={() => router.push("/photographers")}
+                >
+                  Find Photographers
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        );
+      case "profile":
+        return (
+          <Card className="mt-4">
+            <CardHeader>
+              <CardTitle>My Profile</CardTitle>
+              <CardDescription>
+                Manage your personal information
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Suspense
+                fallback={
+                  <div>
+                    <CosmicLoader />
+                    <p>Loading profile...</p>
+                  </div>
+                }
+              >
+                <ProfileForm isClient={true} />
+              </Suspense>
+            </CardContent>
+          </Card>
+        );
+      default:
+        return null;
+    }
   };
 
   return (
@@ -99,6 +165,9 @@ export default function ClientDashboard() {
           <TabsTrigger value="profile">Profile</TabsTrigger>
         </TabsList>
       </Tabs>
+
+      {/* Render the tab content based on active tab */}
+      {renderTabContent()}
     </>
   );
 }

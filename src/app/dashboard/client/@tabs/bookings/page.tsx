@@ -1,7 +1,4 @@
-'use client'
-
-import { Button } from "@/components/ui/button";
-import { Camera } from "lucide-react";
+import { Suspense } from "react";
 import {
   Card,
   CardHeader,
@@ -9,31 +6,27 @@ import {
   CardDescription,
   CardContent,
 } from "@/components/ui/card";
-import { useRouter } from "next/navigation";
+import BookingManager from "@/components/booking-manager";
+import CosmicLoader from "@/app/loading";
 
-export default function ClientBookingsTab() {
-  const router = useRouter();
-
+export default function BookingsTab() {
   return (
     <Card className="mt-4">
       <CardHeader>
-        <CardTitle>My Bookings</CardTitle>
+        <CardTitle>Bookings</CardTitle>
         <CardDescription>Manage your photography sessions</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="text-center py-16">
-          <Camera className="h-16 w-16 mx-auto text-muted-foreground" />
-          <h3 className="text-xl font-medium mt-4">No bookings yet</h3>
-          <p className="text-muted-foreground mt-2">
-            Book a session with a photographer to get started
-          </p>
-          <Button
-            className="mt-4"
-            onClick={() => router.push("/photographers")}
-          >
-            Find Photographers
-          </Button>
-        </div>
+        <Suspense
+          fallback={
+            <div>
+              <CosmicLoader />
+              <p>Loading bookings...</p>
+            </div>
+          }
+        >
+          <BookingManager />
+        </Suspense>
       </CardContent>
     </Card>
   );

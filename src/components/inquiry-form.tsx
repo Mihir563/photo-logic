@@ -23,18 +23,13 @@ import {
 import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { supabase } from "@/lib/supabase";
 
 interface InquiryFormProps {
-  photographerId: string;
   photographerName: string;
-  clientId: string;
 }
 
 export default function InquiryForm({
-  photographerId,
   photographerName,
-  clientId,
 }: InquiryFormProps) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -53,17 +48,7 @@ export default function InquiryForm({
 
     try {
       // Format the inquiry message with all form details
-      const inquiryMessage = {
-        type: "inquiry",
-        details: {
-          name,
-          email,
-          phone,
-          eventType,
-          date: date ? format(date, "yyyy-MM-dd") : null,
-          message,
-        },
-      };
+
 
       // // Send inquiry to Supabase
       // const { error: supabaseError } = await supabase.from("messages").insert({

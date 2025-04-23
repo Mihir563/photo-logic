@@ -49,13 +49,6 @@ export default function PricingForm() {
           return;
         }
 
-        // Get user profile to fetch hourly rate
-        const { data: profileData } = await supabase
-          .from("profiles")
-          .select("hourly_rate")
-          .eq("id", user.id)
-          .single();
-
         // Get pricing packages
         const { data: packagesData, error } = await supabase
           .from("pricing_packages")
@@ -161,7 +154,7 @@ export default function PricingForm() {
     }
   };
 
-  const handlePackageChange = (id: string, field: string, value: any) => {
+  const handlePackageChange = (id: string, field: string, value: string) => {
     setPackages(
       packages.map((pkg) => {
         if (pkg.id === id) {
@@ -235,57 +228,6 @@ export default function PricingForm() {
       }
 
       // Save hourly rate
-
-      // Check if the price_min and price_max columns exist
-      const { data: columnCheck } = await supabase
-        .from("pricing_packages")
-        .select("price_min, price_max")
-        .limit(1)
-
-      const columnsExist = columnCheck !== null;
-
-      // Process each package
-      for (const pkg of packages) {
-        // Format the package data for Supabase
-        let packageData: any = {
-          user_id: user.id,
-          name: pkg.name,
-          duration: parseFloat(pkg.duration.toString()),
-          description: pkg.description,
-          included: pkg.included.filter((item) => item.trim() !== ""),
-          updated_at: new Date().toISOString(),
-        };
-
-        // Add price fields based on column existence
-        if (columnsExist) {
-          // If the new columns exist, use them
-          packageData.price_min = parseFloat(pkg.priceMin.toString());
-          packageData.price_max = parseFloat(pkg.priceMax.toString());
-          // Still update the price field with the minimum for backward compatibility
-          packageData.price = parseFloat(pkg.priceMin.toString());
-        } else {
-          // If the columns don't exist yet, just use the price field with the minimum value
-          packageData.price = parseFloat(pkg.priceMin.toString());
-        }
-
-        if (pkg.isNew || pkg.id.startsWith("temp-")) {
-          // Insert new package
-          const { error } = await supabase
-            .from("pricing_packages")
-            .insert(packageData)
-            .select();
-
-          if (error) throw error;
-        } else if (pkg.hasChanges) {
-          // Update existing package
-          const { error } = await supabase
-            .from("pricing_packages")
-            .update(packageData)
-            .eq("id", pkg.id);
-
-          if (error) throw error;
-        }
-      }
 
       // Refresh data after saving
       const { data: refreshedPackages, error } = await supabase

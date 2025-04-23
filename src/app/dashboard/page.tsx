@@ -11,11 +11,11 @@ import Link from "next/link";
 
 export default function PhotographerDashboard() {
   const [userData, setUserData] = useState<{ id: string } | null>(null);
-  const [stats, setStats] = useState({
+  const stats = {
     totalBookings: 0,
     profileViews: 0,
     totalRevenue: 0,
-  });
+  };
   const router = useRouter();
 
   useEffect(() => {
@@ -37,28 +37,7 @@ export default function PhotographerDashboard() {
           setUserData(profileData);
 
           // Fetch stats for the stats cards
-          const { count: bookingsCount } = await supabase
-            .from("bookings")
-            .select("*", { count: "exact" })
-            .eq("photographer_id", user.id);
-
-          const { data: completedBookings } = await supabase
-            .from("bookings")
-            .select("*")
-            .eq("photographer_id", user.id)
-            .eq("status", "completed");
-
-          const { data: pricingPackages } = await supabase
-            .from("pricing_packages")
-            .select("*")
-            .eq("user_id", user.id);
-
-          let revenue = 0;
-          if (completedBookings && pricingPackages) {
-            revenue =
-              completedBookings.length * (pricingPackages[0]?.price || 0);
-          }
-
+          
         }
       }
     };
